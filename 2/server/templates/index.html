@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>group01_esp32s3eye | QMA6100P EgoLink DevBench</title>
+    <script src="{{ url_for('static', filename='echarts.min.js') }}"></script>
+    <style>
+        :root{--bg:#0d1117;--panel:#161b22;--border:#21262d;--text:#c9d1d9;--dim:#8b949e;--accent:#58a6ff;--green:#3fb950;--red:#f85149;--orange:#d2991d;--cyan:#39d2c0;--col-ax:#f85149;--col-ay:#3fb950;--col-az:#58a6ff}
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Segoe UI','Consolas','Courier New',monospace;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+        .header{display:flex;align-items:center;justify-content:space-between;padding:8px 20px;background:var(--panel);border-bottom:1px solid var(--border);height:48px}
+        .header-left{display:flex;align-items:center;gap:14px}
+        .title{font-size:.95em;font-weight:700;color:var(--text);letter-spacing:.5px}
+        .title span{color:var(--accent)}
+        .status-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:6px;animation:pulse 2s infinite}
+        .status-dot.on{background:var(--green);box-shadow:0 0 10px var(--green)}
+        .status-dot.off{background:var(--red);box-shadow:0 0 10px var(--red);animation:none}
+        @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
+        .header-right{display:flex;gap:24px;font-size:.78em;color:var(--dim)}
+        .header-right .val{color:var(--text);font-weight:600}
+        .main{display:grid;grid-template-columns:1fr 380px;grid-template-rows:1fr auto;gap:10px;padding:10px;height:calc(100vh - 48px)}
+        .panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden;display:flex;flex-direction:column}
+        .panel-header{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:rgba(255,255,255,.02);border-bottom:1px solid var(--border);font-size:.8em;font-weight:700;letter-spacing:.5px}
+        .panel-header .title-text{color:var(--accent)}
+        .panel-header .badge{font-size:.75em;color:var(--dim);background:rgba(255,255,255,.04);padding:2px 8px;border-radius:4px}
+        .panel-body{flex:1;position:relative;min-height:0}
+        #scope-panel{grid-column:1;grid-row:1}
+        #chart{width:100%;height:100%}
+        #cards-panel{grid-column:1;grid-row:2}
+        .cards-row{display:flex;gap:10px;padding:10px 12px;height:100%}
+        .val-card{flex:1;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:6px;padding:10px 14px;display:flex;align-items:center;gap:10px;transition:all .3s}
+        .val-card.flash{border-color:var(--accent);box-shadow:0 0 12px rgba(88,166,255,.3)}
+        .val-card .axis-label{font-size:.7em;font-weight:700;letter-spacing:1px;padding:3px 8px;border-radius:3px}
+        .val-card .axis-label.ax{background:rgba(248,81,73,.15);color:var(--col-ax)}
+        .val-card .axis-label.ay{background:rgba(63,185,80,.15);color:var(--col-ay)}
+        .val-card .axis-label.az{background:rgba(88,166,255,.15);color:var(--col-az)}
+        .val-card .axis-val{font-size:1.6em;font-weight:700;font-family:'Consolas',monospace;line-height:1}
+        .val-card .axis-unit{font-size:.65em;color:var(--dim);margin-left:4px}
+        #att-panel{grid-column:2;grid-row:1/3}
+        .att-body{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;gap:20px}
+        .scene{width:200px;height:200px;perspective:600px;perspective-origin:50% 50%}
+        .cube{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .15s linear}
+        .cube-face{position:absolute;width:80px;height:80px;left:50%;top:50%;margin-left:-40px;margin-top:-40px;border:2px solid rgba(255,255,255,.3);background:rgba(88,166,255,.08);display:flex;align-items:center;justify-content:center;font-size:.6em;color:var(--dim);letter-spacing:2px;backface-visibility:visible}
+        .cube-face.top{transform:rotateX(90deg) translateZ(40px);border-color:var(--col-az);background:rgba(88,166,255,.12)}
+        .cube-face.bottom{transform:rotateX(-90deg) translateZ(40px);border-color:var(--col-az);background:rgba(88,166,255,.05)}
+        .cube-face.right{transform:rotateY(90deg) translateZ(40px);border-color:var(--col-ax);background:rgba(248,81,73,.12)}
+        .cube-face.left{transform:rotateY(-90deg) translateZ(40px);border-color:var(--col-ax);background:rgba(248,81,73,.05)}
+        .cube-face.front{transform:rotateY(0deg) translateZ(40px);border-color:var(--col-ay);background:rgba(63,185,80,.12)}
+        .cube-face.back{transform:rotateY(180deg) translateZ(40px);border-color:var(--col-ay);background:rgba(63,185,80,.05)}
+        .att-values{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+        .att-item{text-align:center;padding:8px;border:1px solid var(--border);border-radius:6px;background:rgba(255,255,255,.01)}
+        .att-item .att-label{font-size:.65em;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
+        .att-item .att-val{font-size:1.1em;font-weight:700;font-family:'Consolas',monospace}
+        .status-bar{display:flex;align-items:center;justify-content:space-between;padding:6px 14px;border-top:1px solid var(--border);font-size:.72em;color:var(--dim);background:rgba(255,255,255,.01)}
+        .no-data-overlay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--dim);font-size:1em;z-index:10;pointer-events:none;text-align:center;line-height:1.8}
+        .no-data-overlay .icon{font-size:2em;margin-bottom:8px}
+        ::-webkit-scrollbar{width:6px}
+        ::-webkit-scrollbar-track{background:transparent}
+        ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <span class="status-dot on" id="status-dot"></span>
+            <span class="title">EgoLink DevBench <span id="dev-id-short">N/A</span></span>
+        </div>
+        <div class="header-right">
+            <span>SERVER: <span class="val" id="srv-time">--:--:--</span></span>
+            <span>DEVICE: <span class="val" id="dev-time">--:--:--</span></span>
+            <span>&#9889; <span class="val" id="data-rate">0</span> Hz</span>
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="panel" id="scope-panel">
+            <div class="panel-header">
+                <span class="title-text">&#9672; Oscilloscope (Acc X/Y/Z)</span>
+                <span class="badge" id="buffer-badge">BUFFER: 0 pts</span>
+            </div>
+            <div class="panel-body" style="position:relative;">
+                <div id="chart"></div>
+                <div class="no-data-overlay" id="no-data-overlay">
+                    <div class="icon">&#128225;</div>
+                    <div>Waiting for device data...</div>
+                    <div style="font-size:0.75em;">Ensure ESP32 is connected & sending</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel" id="cards-panel">
+            <div class="panel-header">
+                <span class="title-text">&#9672; Real-Time Acceleration</span>
+                <span class="badge">QMA6100P</span>
+            </div>
+            <div class="cards-row">
+                <div class="val-card" id="card-ax">
+                    <span class="axis-label ax">AX</span>
+                    <span class="axis-val" id="ax" style="color:var(--col-ax);">0.00</span>
+                    <span class="axis-unit">m/s&#178;</span>
+                </div>
+                <div class="val-card" id="card-ay">
+                    <span class="axis-label ay">AY</span>
+                    <span class="axis-val" id="ay" style="color:var(--col-ay);">0.00</span>
+                    <span class="axis-unit">m/s&#178;</span>
+                </div>
+                <div class="val-card" id="card-az">
+                    <span class="axis-label az">AZ</span>
+                    <span class="axis-val" id="az" style="color:var(--col-az);">0.00</span>
+                    <span class="axis-unit">m/s&#178;</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel" id="att-panel">
+            <div class="panel-header">
+                <span class="title-text">&#9672; 3D Device Attitude</span>
+                <span class="badge">Pitch / Roll</span>
+            </div>
+            <div class="att-body">
+                <div class="scene">
+                    <div class="cube" id="cube">
+                        <div class="cube-face front">ACCEL</div>
+                        <div class="cube-face back"></div>
+                        <div class="cube-face right">AX</div>
+                        <div class="cube-face left">AX</div>
+                        <div class="cube-face top">AZ</div>
+                        <div class="cube-face bottom">AZ</div>
+                    </div>
+                </div>
+                <div class="att-values">
+                    <div class="att-item">
+                        <div class="att-label">Pitch (X)</div>
+                        <div class="att-val" id="pitch" style="color:var(--col-ax);">0.0&deg;</div>
+                    </div>
+                    <div class="att-item">
+                        <div class="att-label">Roll  (Y)</div>
+                        <div class="att-val" id="roll" style="color:var(--col-ay);">0.0&deg;</div>
+                    </div>
+                    <div class="att-item">
+                        <div class="att-label">Device ID</div>
+                        <div class="att-val" id="dev-id" style="color:var(--cyan); font-size:0.85em;">--</div>
+                    </div>
+                    <div class="att-item">
+                        <div class="att-label">Records</div>
+                        <div class="att-val" id="total-records" style="color:var(--green);">0</div>
+                    </div>
+                </div>
+                <div class="status-bar" style="width:100%; border:none; margin-top:auto;">
+                    <span>QMA6100P 3-Axis Accelerometer</span>
+                    <span id="connection-state" style="color:var(--green);">&#9679; ONLINE</span>
+                </div>
+                <div style="width:100%; padding:8px 0 0 0; border-top:1px solid var(--border); display:flex; flex-direction:column; align-items:center; gap:6px;">
+                    <button id="capture-btn" onclick="requestCapture()" style="background:var(--accent);color:#fff;border:none;padding:8px 20px;border-radius:6px;font-size:.78em;font-weight:700;cursor:pointer;letter-spacing:.5px;transition:all .2s;width:100%;">&#128302; 采集一次最新数据</button>
+                    <div id="capture-status" style="font-size:.7em; color:var(--dim); text-align:center;">&#9679; 空闲</div>
+                    
+                    <!-- Week 3: Photo Gallery -->
+                    <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border)">
+                        <div style="font-size:.75em;font-weight:700;color:var(--cyan);margin-bottom:8px;">&#128247; 照片画廊</div>
+                        <button id="photo-capture-btn" onclick="requestPhotoCapture()" style="background:var(--cyan);color:#fff;border:none;padding:6px 16px;border-radius:4px;font-size:.7em;font-weight:700;cursor:pointer;width:100%;margin-bottom:6px;">&#128247; 拍照并上传</button>
+                        <div id="photo-status" style="font-size:.65em;color:var(--dim);text-align:center;margin-bottom:8px;">&#9679; 就绪</div>
+                        <div style="font-size:.65em;color:var(--dim);">照片: <span id="photo-count">0</span> 张</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Week 3: Photo Gallery Panel -->
+    <div id="gallery-panel" class="panel" style="margin-top:10px;">
+        <div class="panel-header">
+            <span class="title-text">&#128247; PHOTO GALLERY</span>
+            <span class="badge" id="gallery-badge">0 PHOTOS</span>
+        </div>
+        <div class="panel-body" style="padding:10px;overflow-y:auto;max-height:400px;">
+            <div id="gallery-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;">
+                <!-- Photos will be loaded here -->
+            </div>
+        </div>
+    </div>
+</body>
+<script>
+var MAX_POINTS=200;
+var timeline=[],dataX=[],dataY=[],dataZ=[];
+var lastAx=null,lastAy=null,lastAz=null;
+var chart=echarts.init(document.getElementById('chart'),'dark');
+chart.setOption({
+    backgroundColor:'transparent',
+    grid:{left:52,right:16,top:16,bottom:32},
+    legend:{data:['AX','AY','AZ'],right:10,top:4,textStyle:{color:'#8b949e',fontSize:11},itemWidth:20,itemHeight:3,icon:'roundRect'},
+    xAxis:{type:'category',boundaryGap:false,data:timeline,axisLine:{lineStyle:{color:'#21262d'}},axisTick:{show:false},axisLabel:{color:'#484f58',fontSize:9,interval:29},splitLine:{show:false}},
+    yAxis:{type:'value',min:-3,max:3,splitNumber:6,axisLine:{lineStyle:{color:'#21262d'}},axisLabel:{color:'#8b949e',fontSize:10,formatter:function(v){return v.toFixed(1)}},splitLine:{lineStyle:{color:'#161b22',type:'dashed'}},name:'m/s\u00b2',nameTextStyle:{color:'#484f58',fontSize:10}},
+    series:[
+        {name:'AX',type:'line',data:dataX,smooth:true,symbol:'none',lineStyle:{color:'#f85149',width:1.8},areaStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(248,81,73,0.18)'},{offset:1,color:'rgba(248,81,73,0.01)'}])}},
+        {name:'AY',type:'line',data:dataY,smooth:true,symbol:'none',lineStyle:{color:'#3fb950',width:1.8},areaStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(63,185,80,0.18)'},{offset:1,color:'rgba(63,185,80,0.01)'}])}},
+        {name:'AZ',type:'line',data:dataZ,smooth:true,symbol:'none',lineStyle:{color:'#58a6ff',width:1.8},areaStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(88,166,255,0.18)'},{offset:1,color:'rgba(88,166,255,0.01)'}])}}
+    ]
+});
+var staleCount=0,hasData=false,updateCount=0,rateStart=Date.now();
+
+function updateCube(pitchDeg,rollDeg){document.getElementById('cube').style.transform='rotateX('+(-pitchDeg)+'deg) rotateY('+rollDeg+'deg)'}
+function flashCard(id){var el=document.getElementById(id);el.classList.remove('flash');void el.offsetWidth;el.classList.add('flash')}
+
+function loadHistory(){fetch('/api/history?count=100').then(function(r){return r.json();}).then(function(d){if(!d.records||d.records.length===0)return;for(var i=0;i<d.records.length;i++){var r=d.records[i];timeline.push(r.server_time?r.server_time.slice(-8):'');dataX.push(r.ax);dataY.push(r.ay);dataZ.push(r.az);}while(timeline.length>MAX_POINTS){timeline.shift();dataX.shift();dataY.shift();dataZ.shift();}chart.setOption({xAxis:{data:timeline},series:[{data:dataX},{data:dataY},{data:dataZ}]});document.getElementById('buffer-badge').textContent='BUFFER: '+timeline.length+' pts';hasData=true;document.getElementById('no-data-overlay').style.display='none';}).catch(function(e){console.error('History error:',e);});}
+function updateDisplay(d){
+    var ax=d.ax,ay=d.ay,az=d.az;
+    document.getElementById('ax').textContent=ax.toFixed(2);
+    document.getElementById('ay').textContent=ay.toFixed(2);
+    document.getElementById('az').textContent=az.toFixed(2);
+    document.getElementById('dev-id').textContent=d.device_id||'--';
+    document.getElementById('dev-id-short').textContent=(d.device_id&&d.device_id!=='waiting')?d.device_id:'N/A';
+    if(d.server_time)document.getElementById('srv-time').textContent=d.server_time.slice(-8);
+    if(d.device_time)document.getElementById('dev-time').textContent=d.device_time.slice(-8);
+    if(lastAx!==null&&ax!==lastAx)flashCard('card-ax');
+    if(lastAy!==null&&ay!==lastAy)flashCard('card-ay');
+    if(lastAz!==null&&az!==lastAz)flashCard('card-az');
+    if(ax===lastAx&&ay===lastAy&&az===lastAz)staleCount++;else staleCount=0;
+    if(staleCount>=15){
+        document.getElementById('status-dot').className='status-dot off';
+        document.getElementById('connection-state').textContent='\u25cf STALE';
+        document.getElementById('connection-state').style.color='var(--orange)';
+    }else{
+        document.getElementById('status-dot').className='status-dot on';
+        document.getElementById('connection-state').textContent='\u25cf ONLINE';
+        document.getElementById('connection-state').style.color='var(--green)';
+    }
+    lastAx=ax;lastAy=ay;lastAz=az;
+    updateCount++;var elapsed=(Date.now()-rateStart)/1000;
+    if(elapsed>=2){document.getElementById('data-rate').textContent=Math.round(updateCount/elapsed);updateCount=0;rateStart=Date.now();}
+}
+function refresh(){fetch('/api/latest').then(function(r){return r.json();}).then(function(d){if(d.device_id==='waiting'&&!hasData){loadHistory();return;}if(!hasData){hasData=true;document.getElementById('no-data-overlay').style.display='none';}updateDisplay(d);timeline.push(d.server_time?d.server_time.slice(-8):'');dataX.push(d.ax);dataY.push(d.ay);dataZ.push(d.az);while(timeline.length>MAX_POINTS){timeline.shift();dataX.shift();dataY.shift();dataZ.shift();}chart.setOption({xAxis:{data:timeline},series:[{data:dataX},{data:dataY},{data:dataZ}]});document.getElementById('buffer-badge').textContent='BUFFER: '+timeline.length+' pts';var pitch=Math.atan2(d.ay,Math.sqrt(d.ax*d.ax+d.az*d.az))*180/Math.PI;var roll=Math.atan2(-d.ax,d.az)*180/Math.PI;document.getElementById('pitch').textContent=pitch.toFixed(1)+'\u00b0';document.getElementById('roll').textContent=roll.toFixed(1)+'\u00b0';updateCube(pitch,roll);fetch('/api/count').then(function(r){return r.json();}).then(function(cd){document.getElementById('total-records').textContent=cd.total;}).catch(function(){});}).catch(function(e){console.error('Fetch error:',e);document.getElementById('status-dot').className='status-dot off';document.getElementById('connection-state').textContent='\u25cf OFFLINE';document.getElementById('connection-state').style.color='var(--red)';});}
+
+loadHistory();refresh();setInterval(refresh,200);
+window.addEventListener('resize',function(){chart.resize();});
+
+// ─── Week 2: On-Demand Capture ──────────────────────────────────
+var capturePollTimer=null;
+
+function requestCapture(){
+    var btn=document.getElementById('capture-btn');
+    var st=document.getElementById('capture-status');
+    btn.disabled=true;btn.style.opacity='0.5';btn.style.cursor='default';
+    st.textContent='● 已提交，等待设备响应...';
+    st.style.color='var(--orange)';
+    fetch('/api/request_capture',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({device_id:'group01_esp32s3eye'})
+    }).then(function(r){return r.json()}).then(function(d){
+        pollCaptureStatus(d.request_id);
+    }).catch(function(e){
+        btn.disabled=false;btn.style.opacity='1';btn.style.cursor='pointer';
+        st.textContent='● 请求失败';st.style.color='var(--red)';
+        console.error('Capt req err:',e);
+    });
+}
+
+function pollCaptureStatus(reqId){
+    var btn=document.getElementById('capture-btn');
+    var st=document.getElementById('capture-status');
+    if(capturePollTimer)clearInterval(capturePollTimer);
+    capturePollTimer=setInterval(function(){
+        fetch('/api/command_status?request_id='+reqId)
+        .then(function(r){return r.json()})
+        .then(function(d){
+            if(d.status==='done'){
+                st.textContent='✅ 采集成功，数据已更新';
+                st.style.color='var(--green)';
+                clearInterval(capturePollTimer);capturePollTimer=null;
+                btn.disabled=false;btn.style.opacity='1';btn.style.cursor='pointer';
+                ['card-ax','card-ay','card-az'].forEach(function(id){flashCard(id)});
+            }else if(d.status==='timeout'){
+                st.textContent='⏱ 请求超时，未收到新数据';
+                st.style.color='var(--red)';
+                clearInterval(capturePollTimer);capturePollTimer=null;
+                btn.disabled=false;btn.style.opacity='1';btn.style.cursor='pointer';
+            }else if(d.status==='received'){
+                st.textContent='● 设备已接收指令';
+                st.style.color='var(--cyan)';
+            }else if(d.status==='fail'){
+                st.textContent='❌ 采集失败';
+                st.style.color='var(--red)';
+                clearInterval(capturePollTimer);capturePollTimer=null;
+                btn.disabled=false;btn.style.opacity='1';btn.style.cursor='pointer';
+            }
+        }).catch(function(){})
+    },500);
+}
+
+// ─── Week 3: Photo Gallery ──────────────────────────────────
+var photoPollTimer = null;
+
+function requestPhotoCapture(){
+    var btn = document.getElementById('photo-capture-btn');
+    var st = document.getElementById('photo-status');
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    st.textContent = '● 正在拍照...';
+    st.style.color = 'var(--cyan)';
+    
+    // Reuse capture request flow - device will capture photo when it receives command
+    fetch('/api/request_capture',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({device_id:'group01_esp32s3eye'})
+    }).then(function(r){return r.json()}).then(function(d){
+        pollPhotoStatus(d.request_id);
+    }).catch(function(e){
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        st.textContent = '● 请求失败';
+        st.style.color = 'var(--red)';
+        console.error('Photo req err:', e);
+    });
+}
+
+function pollPhotoStatus(reqId){
+    var btn = document.getElementById('photo-capture-btn');
+    var st = document.getElementById('photo-status');
+    if(photoPollTimer) clearInterval(photoPollTimer);
+    
+    // Record photo count before capture
+    var beforeCount = 0;
+    var startTime = Date.now();
+    st.textContent = '● 正在拍照，等待上传...';
+    st.style.color = 'var(--cyan)';
+    
+    fetch('/api/photos/count')
+    .then(function(r){return r.json()})
+    .then(function(d){ beforeCount = d.total; });
+    
+    photoPollTimer = setInterval(function(){
+        var elapsed = Date.now() - startTime;
+        
+        // Timeout after 30 seconds
+        if(elapsed > 30000) {
+            st.textContent = '⏱ 超时 30 秒，未收到照片';
+            st.style.color = 'var(--red)';
+            clearInterval(photoPollTimer);
+            photoPollTimer = null;
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            return;
+        }
+        
+        // Check if photo count increased
+        fetch('/api/photos/count')
+        .then(function(r){return r.json()})
+        .then(function(d){
+            if(d.total > beforeCount) {
+                st.textContent = '✅ 照片已上传 (' + d.total + '张)';
+                st.style.color = 'var(--green)';
+                clearInterval(photoPollTimer);
+                photoPollTimer = null;
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                loadPhotos();  // Refresh gallery
+            } else {
+                st.textContent = '● 等待中... (' + Math.floor(elapsed/1000) + 's)';
+            }
+        }).catch(function(){})
+    }, 1000);
+}
+
+function loadPhotos(){
+    fetch('/api/photos')
+    .then(function(r){return r.json()})
+    .then(function(d){
+        var grid = document.getElementById('gallery-grid');
+        grid.innerHTML = '';
+        var photos = d.photos || [];
+        photos.forEach(function(photo){
+            var card = document.createElement('div');
+            card.style.cssText = 'background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:6px;overflow:hidden;transition:all .3s;';
+            card.innerHTML = '<img src="/uploads/'+photo.filename+'" style="width:100%;height:150px;object-fit:cover;cursor:pointer;" onclick="showPhotoDetail(\''+photo.id+'\')">' +
+                '<div style="padding:8px;">' +
+                '<div style="font-size:.7em;color:var(--dim);">'+photo.capture_time+'</div>' +
+                '<div style="font-size:.65em;color:var(--dim);margin-top:4px;">ax:'+photo.ax.toFixed(2)+' ay:'+photo.ay.toFixed(2)+' az:'+photo.az.toFixed(2)+'</div>' +
+                '<div style="font-size:.6em;color:var(--dim);margin-top:2px;">'+(photo.filesize/1024).toFixed(1)+' KB</div>' +
+                '</div>';
+            card.onmouseover = function(){this.style.borderColor='var(--accent)';this.style.boxShadow='0 0 12px rgba(88,166,255,.3)';};
+            card.onmouseout = function(){this.style.borderColor='var(--border)';this.style.boxShadow='none';};
+            grid.appendChild(card);
+        });
+        document.getElementById('gallery-badge').textContent = photos.length + ' PHOTOS';
+        document.getElementById('photo-count').textContent = photos.length;
+    })
+    .catch(function(e){console.error('Load photos error:', e);});
+}
+
+function showPhotoDetail(photoId){
+    // Could expand to modal view - for now just log
+    console.log('Photo ID:', photoId);
+}
+
+// Load photos on page load
+loadPhotos();
+</script>
+</html>
