@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.env
+
+# Database
+*.db
+
+# IDE
+.vscode/
+.idea/
+
+# ESP-IDF build artifacts
+build/
+managed_components/
+
+# OS
+.DS_Store
+Thumbs.db
