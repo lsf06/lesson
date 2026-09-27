@@ -1,0 +1,194 @@
+==== FLASH ==== 
+Executing action: flash
+Running ninja in directory E:\study\lsf\daima\ganzhi\esi-mvp-code-main\esi-mvp-code-main\esi-mvp-code-main\extensions\03_catdog_static_infer\build
+Executing "ninja flash"...
+[1/5] C:\Windows\system32\cmd.exe /C "cd /D E:\study\lsf\daima\ganzhi\esi-mvp-code-main\esi-mvp-code-main\esi-mvp-code-main\extensions\03_catdog_static_infer\build\esp-idf\esptool_py && D:\Download\esp\Espressif\python_env\idf5.4_py3.12_env\Scripts\python.exe D:/Download/esp/Espressif/frameworks/esp-idf-v5.4.4/components/partition_table/check_sizes.py --offset 0x8000 partition --type app E:/study/lsf/daima/ganzhi/esi-mvp-code-main/esi-mvp-code-main/esi-mvp-code-main/extensions/03_catdog_static_infer/build/partition_table/partition-table.bin E:/study/lsf/daima/ganzhi/esi-mvp-code-main/esi-mvp-code-main/esi-mvp-code-main/extensions/03_catdog_static_infer/build/catdog_static_infer.bin"
+catdog_static_infer.bin binary size 0x21ab50 bytes. Smallest app partition is 0x7d0000 bytes. 0x5b54b0 bytes (73%) free.
+[2/5] Performing build step for 'bootloader'
+[1/1] C:\Windows\system32\cmd.exe /C "cd /D E:\study\lsf\daima\ganzhi\esi-mvp-code-main\esi-mvp-code-main\esi-mvp-code-main\extensions\03_catdog_static_infer\build\bootloader\esp-idf\esptool_py && D:\Download\esp\Espressif\python_env\idf5.4_py3.12_env\Scripts\python.exe D:/Download/esp/Espressif/frameworks/esp-idf-v5.4.4/components/partition_table/check_sizes.py --offset 0x8000 bootloader 0x0 E:/study/lsf/daima/ganzhi/esi-mvp-code-main/esi-mvp-code-main/esi-mvp-code-main/extensions/03_catdog_static_infer/build/bootloader/bootloader.bin"
+Bootloader binary size 0x51c0 bytes. 0x2e40 bytes (36%) free.
+[3/5] No install step for 'bootloader'
+[4/5] Completed 'bootloader'
+[4/5] C:\Windows\system32\cmd.exe /C "cd /D D:\Download\esp\Espressif\frameworks\esp-idf-v5.4.4\components\esptool_py && D:\Download\esp\Espressif\tools\cmake\3.30.2\bin\cmake.exe -D IDF_PATH=D:/Download/esp/Espressif/frameworks/esp-idf-v5.4.4 -D SERIAL_TOOL=D:/Download/esp/Espressif/python_env/idf5.4_py3.12_env/Scripts/python.exe;;D:/Download/esp/Espressif/frameworks/esp-idf-v5.4.4/components/esptool_py/esptool/esptool.py;--chip;esp32s3 -D SERIAL_TOOL_ARGS=--before=default_reset;--after=hard_reset;write_flash;@flash_args -D WORKING_DIRECTORY=E:/study/lsf/daima/ganzhi/esi-mvp-code-main/esi-mvp-code-main/esi-mvp-code-main/extensions/03_catdog_static_infer/build -P D:/Download/esp/Espressif/frameworks/esp-idf-v5.4.4/components/esptool_py/run_serial_tool.cmake"
+esptool.py --chip esp32s3 -p COM6 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 80m --flash_size 8MB 0x0 bootloader/bootloader.bin 0x10000 catdog_static_infer.bin 0x8000 partition_table/partition-table.bin
+esptool.py v4.12.0
+Serial port COM6
+Connecting...
+Chip is ESP32-S3 (QFN56) (revision v0.2)
+Features: WiFi, BLE, Embedded PSRAM 8MB (AP_3v3)
+Crystal is 40MHz
+USB mode: USB-Serial/JTAG
+MAC: 94:a9:90:1c:6f:88
+Uploading stub...
+Running stub...
+Stub running...
+Changing baud rate to 460800
+Changed.
+Configuring flash size...
+Flash will be erased from 0x00000000 to 0x00005fff...
+Flash will be erased from 0x00010000 to 0x0022afff...
+Flash will be erased from 0x00008000 to 0x00008fff...
+SHA digest in image updated
+Compressed 20928 bytes to 13322...
+Writing at 0x00000000... (100 %)
+Wrote 20928 bytes (13322 compressed) at 0x00000000 in 0.2 seconds (effective 698.2 kbit/s)...
+Hash of data verified.
+Compressed 2206544 bytes to 836124...
+Writing at 0x00010000... (1 %)
+Writing at 0x0001e9d0... (3 %)
+Writing at 0x0002a1f0... (5 %)
+Writing at 0x000311c8... (7 %)
+Writing at 0x000375fc... (9 %)
+Writing at 0x0003e393... (11 %)
+Writing at 0x00045468... (13 %)
+Writing at 0x0004e1cd... (15 %)
+Writing at 0x00054265... (17 %)
+Writing at 0x0005a5ef... (19 %)
+Writing at 0x0006164a... (21 %)
+Writing at 0x0006b8dc... (23 %)
+Writing at 0x00073f34... (25 %)
+Writing at 0x000798dd... (26 %)
+Writing at 0x0008271f... (28 %)
+Writing at 0x00088d48... (30 %)
+Writing at 0x000930a4... (32 %)
+Writing at 0x0009b5bd... (34 %)
+Writing at 0x000a2125... (36 %)
+Writing at 0x000aa356... (38 %)
+Writing at 0x000b3e2c... (40 %)
+Writing at 0x000bc7c0... (42 %)
+Writing at 0x000c4248... (44 %)
+Writing at 0x000d08a3... (46 %)
+Writing at 0x000dc699... (48 %)
+Writing at 0x000e5e74... (50 %)
+Writing at 0x000eeec6... (51 %)
+Writing at 0x000f96eb... (53 %)
+Writing at 0x00102bd7... (55 %)
+Writing at 0x0010ce35... (57 %)
+Writing at 0x0011a5d9... (59 %)
+Writing at 0x00124cbc... (61 %)
+Writing at 0x0012ee82... (63 %)
+Writing at 0x0013977b... (65 %)
+Writing at 0x0014274b... (67 %)
+Writing at 0x0014e5ff... (69 %)
+Writing at 0x00159e0a... (71 %)
+Writing at 0x00162b67... (73 %)
+Writing at 0x0016f489... (75 %)
+Writing at 0x00178100... (76 %)
+Writing at 0x0019a32a... (78 %)
+Writing at 0x001a29a9... (80 %)
+Writing at 0x001abc45... (82 %)
+Writing at 0x001b17b9... (84 %)
+Writing at 0x001b7e57... (86 %)
+Writing at 0x001bdb10... (88 %)
+Writing at 0x001c43b0... (90 %)
+Writing at 0x001ccf74... (92 %)
+Writing at 0x001f7e42... (94 %)
+Writing at 0x0021c2a2... (96 %)
+Writing at 0x00223d50... (98 %)
+Writing at 0x0022a89c... (100 %)
+Wrote 2206544 bytes (836124 compressed) at 0x00010000 in 10.5 seconds (effective 1674.6 kbit/s)...
+Hash of data verified.
+Compressed 3072 bytes to 105...
+Writing at 0x00008000... (100 %)
+Wrote 3072 bytes (105 compressed) at 0x00008000 in 0.0 seconds (effective 825.9 kbit/s)...
+Hash of data verified.
+
+Leaving...
+Hard resetting via RTS pin...
+Done
+==== MONITOR ==== 
+--- WARNING: GDB cannot open serial ports accessed as COMx
+--- NOTE: Using \\.\COM6 instead...
+--- esp-idf-monitor 1.10.0 on \\.\COM6 115200
+--- Quit: Ctrl+] | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H
+Executing action: monitor
+Running idf_monitor in directory E:\study\lsf\daima\ganzhi\esi-mvp-code-main\esi-mvp-code-main\esi-mvp-code-main\extensions\03_catdog_static_infer
+Executing "D:\Download\esp\Espressif\python_env\idf5.4_py3.12_env\Scripts\python.exe D:\Download\esp\Espressif\frameworks\esp-idf-v5.4.4\tools/idf_monitor.py -p COM6 -b 115200 --toolchain-prefix xtensa-esp32s3-elf- --target esp32s3 --revision 0 E:\study\lsf\daima\ganzhi\esi-mvp-code-main\esi-mvp-code-main\esi-mvp-code-main\extensions\03_catdog_static_infer\build\catdog_static_infer.elf --force-color -m 'D:\Download\esp\Espressif\python_env\idf5.4_py3.12_env\Scripts\python.exe' 'D:\Download\esp\Espressif\frameworks\esp-idf-v5.4.4\tools\idf.py' '-p' 'COM6'"...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0x2a (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037cb5e
+--- 0x4037cb5e: esp_cpu_wait_for_intr at D:/Download/esp/Espressif/frameworks/esp-idf-v5.4.4/components/esp_hw_support/cpu.c:64
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2810,len:0x1564
+load:0x403c8700,len:0x4
+load:0x403c8704,len:0xd24
+load:0x403cb700,len:0x2ed4
+entry 0x403c8928
+I (26) boot: ESP-IDF v5.4.4 2nd stage bootloader
+I (27) boot: compile time Sep 27 2026 13:24:43
+I (27) boot: Multicore bootloader
+I (27) boot: chip revision: v0.2
+I (30) boot: efuse block revision: v1.3
+I (33) boot.esp32s3: Boot SPI Speed : 80MHz
+I (37) boot.esp32s3: SPI Mode       : DIO
+I (41) boot.esp32s3: SPI Flash Size : 8MB
+I (45) boot: Enabling RNG early entropy source...
+I (49) boot: Partition Table:
+I (52) boot: ## Label            Usage          Type ST Offset   Length
+I (58) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (65) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (71) boot:  2 factory          factory app      00 00 00010000 007d0000
+I (78) boot: End of partition table
+I (81) esp_image: segment 0: paddr=00010020 vaddr=3c1f0020 size=18388h ( 99208) map
+I (106) esp_image: segment 1: paddr=000283b0 vaddr=3fc98800 size=03860h ( 14432) load
+I (109) esp_image: segment 2: paddr=0002bc18 vaddr=40374000 size=04400h ( 17408) load
+I (114) esp_image: segment 3: paddr=00030020 vaddr=42000020 size=1ea7c4h (2009028) map
+I (471) esp_image: segment 4: paddr=0021a7ec vaddr=40378400 size=10314h ( 66324) load
+I (486) esp_image: segment 5: paddr=0022ab08 vaddr=50000000 size=0001ch (    28) load
+I (494) boot: Loaded app from partition at offset 0x10000
+I (495) boot: Disabling RNG early entropy source...
+I (505) octal_psram: vendor id    : 0x0d (AP)
+I (505) octal_psram: dev id       : 0x02 (generation 3)
+I (505) octal_psram: density      : 0x03 (64 Mbit)
+I (507) octal_psram: good-die     : 0x01 (Pass)
+I (511) octal_psram: Latency      : 0x01 (Fixed)
+I (516) octal_psram: VCC          : 0x01 (3V)
+I (520) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (525) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (529) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (534) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (539) octal_psram: DriveStrength: 0x00 (1/1)
+I (544) MSPI Timing: PSRAM timing tuning index: 5
+I (548) esp_psram: Found 8MB PSRAM device
+I (551) esp_psram: Speed: 80MHz
+I (554) cpu_start: Multicore app
+I (990) esp_psram: SPI SRAM memory test OK
+I (998) cpu_start: GPIO 44 and 43 are used as console UART I/O pins
+I (999) cpu_start: Pro cpu start user code
+I (999) cpu_start: cpu freq: 160000000 Hz
+I (1001) app_init: Application information:
+I (1005) app_init: Project name:     catdog_static_infer
+I (1010) app_init: App version:      1
+I (1013) app_init: Compile time:     Sep 27 2026 12:58:24
+I (1018) app_init: ELF file SHA256:  7133feee5...
+I (1023) app_init: ESP-IDF:          v5.4.4
+I (1027) efuse_init: Min chip rev:     v0.0
+I (1030) efuse_init: Max chip rev:     v0.99 
+I (1034) efuse_init: Chip rev:         v0.2
+I (1038) heap_init: Initializing. RAM available for dynamic allocation:
+I (1045) heap_init: At 3FC9E028 len 0004B6E8 (301 KiB): RAM
+I (1050) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (1055) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (1061) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (1066) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (1074) spi_flash: detected chip: generic
+I (1076) spi_flash: flash io: dio
+I (1080) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (1086) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (1093) main_task: Started on CPU0
+I (1103) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (1103) main_task: Calling app_main()
+W (1103) ESP32-S3-EYE: Warning: Long filenames on SD card are disabled in menuconfig!
+I (1113) gpio: GPIO[39]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (1123) gpio: GPIO[38]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (1133) gpio: GPIO[40]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (1183) catdog_static_infer: SD card mounted at /sdcard
+W (3853) dl::Model: minimize() will delete unused inference variables, breaking model testing/debugging.
+I (3943) catdog_static_infer: decoded /sdcard/images/sample.jpg: 336 x 499 in 54149 us
+I (7183) catdog_static_infer: top1=dog score=0.626124 infer=3240357 us
+I (7183) gpio: GPIO[39]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (7183) gpio: GPIO[38]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (7193) gpio: GPIO[40]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (7213) main_task: Returned from app_main()

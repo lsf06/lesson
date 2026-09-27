@@ -1,0 +1,366 @@
+==== FLASH ==== 
+Executing action: flash
+Running ninja in directory E:\esi_build\projB
+Executing "ninja flash"...
+[1/5] C:\Windows\system32\cmd.exe /C "cd /D E:\esi_build\projB\esp-idf\esptool_py && D:\Download\esp\Espressif\python_env\idf5.4_py3.12_env\Scripts\python.exe D:/Download/esp/Espressif/frameworks/esp-idf-v5.4.4/components/partition_table/check_sizes.py --offset 0x8000 partition --type app E:/esi_build/projB/partition_table/partition-table.bin E:/esi_build/projB/camera_catdog_live.bin"
+camera_catdog_live.bin binary size 0x4b4360 bytes. Smallest app partition is 0x6d6000 bytes. 0x221ca0 bytes (31%) free.
+[2/5] Performing build step for 'bootloader'
+[1/1] C:\Windows\system32\cmd.exe /C "cd /D E:\esi_build\projB\bootloader\esp-idf\esptool_py && D:\Download\esp\Espressif\python_env\idf5.4_py3.12_env\Scripts\python.exe D:/Download/esp/Espressif/frameworks/esp-idf-v5.4.4/components/partition_table/check_sizes.py --offset 0x8000 bootloader 0x0 E:/esi_build/projB/bootloader/bootloader.bin"
+Bootloader binary size 0x51c0 bytes. 0x2e40 bytes (36%) free.
+[3/5] No install step for 'bootloader'
+[4/5] Completed 'bootloader'
+[4/5] C:\Windows\system32\cmd.exe /C "cd /D D:\Download\esp\Espressif\frameworks\esp-idf-v5.4.4\components\esptool_py && D:\Download\esp\Espressif\tools\cmake\3.30.2\bin\cmake.exe -D IDF_PATH=D:/Download/esp/Espressif/frameworks/esp-idf-v5.4.4 -D SERIAL_TOOL=D:/Download/esp/Espressif/python_env/idf5.4_py3.12_env/Scripts/python.exe;;D:/Download/esp/Espressif/frameworks/esp-idf-v5.4.4/components/esptool_py/esptool/esptool.py;--chip;esp32s3 -D SERIAL_TOOL_ARGS=--before=default_reset;--after=hard_reset;write_flash;@flash_args -D WORKING_DIRECTORY=E:/esi_build/projB -P D:/Download/esp/Espressif/frameworks/esp-idf-v5.4.4/components/esptool_py/run_serial_tool.cmake"
+esptool.py --chip esp32s3 -p COM6 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 80m --flash_size 8MB 0x0 bootloader/bootloader.bin 0x10000 camera_catdog_live.bin 0x8000 partition_table/partition-table.bin
+esptool.py v4.12.0
+Serial port COM6
+Connecting...
+Chip is ESP32-S3 (QFN56) (revision v0.2)
+Features: WiFi, BLE, Embedded PSRAM 8MB (AP_3v3)
+Crystal is 40MHz
+USB mode: USB-Serial/JTAG
+MAC: 94:a9:90:1c:6f:88
+Uploading stub...
+Running stub...
+Stub running...
+Changing baud rate to 460800
+Changed.
+Configuring flash size...
+Flash will be erased from 0x00000000 to 0x00005fff...
+Flash will be erased from 0x00010000 to 0x004c4fff...
+Flash will be erased from 0x00008000 to 0x00008fff...
+SHA digest in image updated
+Compressed 20928 bytes to 13320...
+Writing at 0x00000000... (100 %)
+Wrote 20928 bytes (13320 compressed) at 0x00000000 in 0.2 seconds (effective 694.1 kbit/s)...
+Hash of data verified.
+Compressed 4932448 bytes to 2911574...
+Writing at 0x00010000... (0 %)
+Writing at 0x0001e9f2... (1 %)
+Writing at 0x0002b3d1... (1 %)
+Writing at 0x000308b9... (2 %)
+Writing at 0x00035249... (2 %)
+Writing at 0x00039b9e... (3 %)
+Writing at 0x0003e567... (3 %)
+Writing at 0x00042f21... (4 %)
+Writing at 0x0004789d... (5 %)
+Writing at 0x0004c329... (5 %)
+Writing at 0x00050cfa... (6 %)
+Writing at 0x00055bf3... (6 %)
+Writing at 0x0005b114... (7 %)
+Writing at 0x00060325... (7 %)
+Writing at 0x0006571a... (8 %)
+Writing at 0x0006aa68... (8 %)
+Writing at 0x00070820... (9 %)
+Writing at 0x00075825... (10 %)
+Writing at 0x0007a69d... (10 %)
+Writing at 0x0007f4f0... (11 %)
+Writing at 0x00084393... (11 %)
+Writing at 0x000891f5... (12 %)
+Writing at 0x0008e038... (12 %)
+Writing at 0x00092e88... (13 %)
+Writing at 0x00097d1c... (14 %)
+Writing at 0x0009cbc1... (14 %)
+Writing at 0x000a199b... (15 %)
+Writing at 0x000a6826... (15 %)
+Writing at 0x000ab6c1... (16 %)
+Writing at 0x000b0539... (16 %)
+Writing at 0x000b53b5... (17 %)
+Writing at 0x000ba1db... (17 %)
+Writing at 0x000bf04d... (18 %)
+Writing at 0x000c3eed... (19 %)
+Writing at 0x000c8d59... (19 %)
+Writing at 0x000cdbfa... (20 %)
+Writing at 0x000d2a39... (20 %)
+Writing at 0x000d7b1b... (21 %)
+Writing at 0x000dd022... (21 %)
+Writing at 0x000e2587... (22 %)
+Writing at 0x000e7ac8... (23 %)
+Writing at 0x000ecf38... (23 %)
+Writing at 0x000f240c... (24 %)
+Writing at 0x000f793a... (24 %)
+Writing at 0x000fd196... (25 %)
+Writing at 0x0010254b... (25 %)
+Writing at 0x00107178... (26 %)
+Writing at 0x0010bdec... (26 %)
+Writing at 0x00110af0... (27 %)
+Writing at 0x0011580b... (28 %)
+Writing at 0x0011a56b... (28 %)
+Writing at 0x0011f29c... (29 %)
+Writing at 0x00123fac... (29 %)
+Writing at 0x00128cc2... (30 %)
+Writing at 0x0012e171... (30 %)
+Writing at 0x00133618... (31 %)
+Writing at 0x00138bad... (32 %)
+Writing at 0x0013dfa3... (32 %)
+Writing at 0x001432d9... (33 %)
+Writing at 0x001487b0... (33 %)
+Writing at 0x0014dbdd... (34 %)
+Writing at 0x00152ee5... (34 %)
+Writing at 0x00158439... (35 %)
+Writing at 0x0015d805... (35 %)
+Writing at 0x00162789... (36 %)
+Writing at 0x00167c29... (37 %)
+Writing at 0x0016c8b1... (37 %)
+Writing at 0x001714fd... (38 %)
+Writing at 0x00176c90... (38 %)
+Writing at 0x0017bb35... (39 %)
+Writing at 0x00180b4a... (39 %)
+Writing at 0x00185b61... (40 %)
+Writing at 0x0018ab0b... (41 %)
+Writing at 0x0018fa2b... (41 %)
+Writing at 0x001949ce... (42 %)
+Writing at 0x00199934... (42 %)
+Writing at 0x0019ee29... (43 %)
+Writing at 0x001a45aa... (43 %)
+Writing at 0x001a9c7d... (44 %)
+Writing at 0x001af5dd... (44 %)
+Writing at 0x001b3fc0... (45 %)
+Writing at 0x001b8a94... (46 %)
+Writing at 0x001bdb1c... (46 %)
+Writing at 0x001c3613... (47 %)
+Writing at 0x001c8358... (47 %)
+Writing at 0x001cd84a... (48 %)
+Writing at 0x001d2ce3... (48 %)
+Writing at 0x001d80ae... (49 %)
+Writing at 0x001dd5c0... (50 %)
+Writing at 0x001e2b42... (50 %)
+Writing at 0x001e74ac... (51 %)
+Writing at 0x001ebe95... (51 %)
+Writing at 0x001f08f9... (52 %)
+Writing at 0x001f53d8... (52 %)
+Writing at 0x001f9d6b... (53 %)
+Writing at 0x001fe78e... (53 %)
+Writing at 0x00203146... (54 %)
+Writing at 0x00207b5c... (55 %)
+Writing at 0x0020c54d... (55 %)
+Writing at 0x0021100a... (56 %)
+Writing at 0x00215a53... (56 %)
+Writing at 0x0021a38c... (57 %)
+Writing at 0x0021edce... (57 %)
+Writing at 0x002237d9... (58 %)
+Writing at 0x002281d5... (58 %)
+Writing at 0x0022caef... (59 %)
+Writing at 0x0023280e... (60 %)
+Writing at 0x00237107... (60 %)
+Writing at 0x0023ba66... (61 %)
+Writing at 0x00240385... (61 %)
+Writing at 0x00244bf5... (62 %)
+Writing at 0x002499f3... (62 %)
+Writing at 0x0024ede9... (63 %)
+Writing at 0x002544ff... (64 %)
+Writing at 0x00259826... (64 %)
+Writing at 0x0026cbae... (65 %)
+Writing at 0x00274689... (65 %)
+Writing at 0x0027d51b... (66 %)
+Writing at 0x002831bb... (66 %)
+Writing at 0x00289712... (67 %)
+Writing at 0x0029097c... (67 %)
+Writing at 0x00297770... (68 %)
+Writing at 0x002a0741... (69 %)
+Writing at 0x002a68d0... (69 %)
+Writing at 0x002acbef... (70 %)
+Writing at 0x002b3bfc... (70 %)
+Writing at 0x002bdf5a... (71 %)
+Writing at 0x002c65d5... (71 %)
+Writing at 0x002cc04e... (72 %)
+Writing at 0x002d4f03... (73 %)
+Writing at 0x002db44e... (73 %)
+Writing at 0x002e5792... (74 %)
+Writing at 0x002edcbe... (74 %)
+Writing at 0x002f4974... (75 %)
+Writing at 0x002fcb93... (75 %)
+Writing at 0x00306536... (76 %)
+Writing at 0x0030ee9d... (76 %)
+Writing at 0x00316af9... (77 %)
+Writing at 0x00323083... (78 %)
+Writing at 0x0032ee17... (78 %)
+Writing at 0x003386bd... (79 %)
+Writing at 0x00341861... (79 %)
+Writing at 0x0034c33c... (80 %)
+Writing at 0x003553ab... (80 %)
+Writing at 0x0035f6f2... (81 %)
+Writing at 0x0036ce94... (82 %)
+Writing at 0x00377514... (82 %)
+Writing at 0x003816b2... (83 %)
+Writing at 0x0038bf52... (83 %)
+Writing at 0x003956e7... (84 %)
+Writing at 0x003a1173... (84 %)
+Writing at 0x003ac608... (85 %)
+Writing at 0x003b579c... (85 %)
+Writing at 0x003c24a9... (86 %)
+Writing at 0x003cabb4... (87 %)
+Writing at 0x003ecdfe... (87 %)
+Writing at 0x003f2d3c... (88 %)
+Writing at 0x003fa749... (88 %)
+Writing at 0x0040102e... (89 %)
+Writing at 0x00407164... (89 %)
+Writing at 0x0040cc1a... (90 %)
+Writing at 0x00412f09... (91 %)
+Writing at 0x004199c9... (91 %)
+Writing at 0x0041f4e2... (92 %)
+Writing at 0x00425128... (92 %)
+Writing at 0x0042b516... (93 %)
+Writing at 0x004313bb... (93 %)
+Writing at 0x004389cb... (94 %)
+Writing at 0x00440fd2... (94 %)
+Writing at 0x004478f9... (95 %)
+Writing at 0x0044d78f... (96 %)
+Writing at 0x00453bd0... (96 %)
+Writing at 0x0045c745... (97 %)
+Writing at 0x004719d5... (97 %)
+Writing at 0x004ab76e... (98 %)
+Writing at 0x004b21c2... (98 %)
+Writing at 0x004b91b4... (99 %)
+Writing at 0x004bf9db... (100 %)
+Wrote 4932448 bytes (2911574 compressed) at 0x00010000 in 26.3 seconds (effective 1501.6 kbit/s)...
+Hash of data verified.
+Compressed 3072 bytes to 119...
+Writing at 0x00008000... (100 %)
+Wrote 3072 bytes (119 compressed) at 0x00008000 in 0.0 seconds (effective 858.7 kbit/s)...
+Hash of data verified.
+
+Leaving...
+Hard resetting via RTS pin...
+Done
+==== MONITOR ==== 
+--- WARNING: GDB cannot open serial ports accessed as COMx
+--- NOTE: Using \\.\COM6 instead...
+--- esp-idf-monitor 1.10.0 on \\.\COM6 115200
+--- Quit: Ctrl+] | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H
+Executing action: monitor
+Running idf_monitor in directory E:\study\lsf\daima\ganzhi\esi-mvp-code-main\esi-mvp-code-main\esi-mvp-code-main\extensions\03_live_catdog_assignment
+Executing "D:\Download\esp\Espressif\python_env\idf5.4_py3.12_env\Scripts\python.exe D:\Download\esp\Espressif\frameworks\esp-idf-v5.4.4\tools/idf_monitor.py -p COM6 -b 115200 --toolchain-prefix xtensa-esp32s3-elf- --target esp32s3 --revision 0 E:\esi_build\projB\camera_catdog_live.elf --force-color -m 'D:\Download\esp\Espressif\python_env\idf5.4_py3.12_env\Scripts\python.exe' 'D:\Download\esp\Espressif\frameworks\esp-idf-v5.4.4\tools\idf.py' '-B' 'E:\esi_build\projB' '-p' 'COM6'"...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0x2a (SPI_FAST_FLASH_BOOT)
+Saved PC:0x42155930
+--- 0x42155930: dl_tie728_s8_unaligned_conv2d_33cn at E:/study/lsf/daima/ganzhi/esi-mvp-code-main/esi-mvp-code-main/esi-mvp-code-main/extensions/03_live_catdog_assignment/managed_components/espressif__esp-dl/dl/base/isa/tie728/dl_tie728_s8_conv2d.S:1686
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2810,len:0x1564
+load:0x403c8700,len:0x4
+load:0x403c8704,len:0xd24
+load:0x403cb700,len:0x2ed4
+entry 0x403c8928
+I (26) boot: ESP-IDF v5.4.4 2nd stage bootloader
+I (27) boot: compile time Sep 27 2026 14:10:05
+I (27) boot: Multicore bootloader
+I (27) boot: chip revision: v0.2
+I (30) boot: efuse block revision: v1.3
+I (33) boot.esp32s3: Boot SPI Speed : 80MHz
+I (37) boot.esp32s3: SPI Mode       : DIO
+I (41) boot.esp32s3: SPI Flash Size : 8MB
+I (45) boot: Enabling RNG early entropy source...
+I (49) boot: Partition Table:
+I (52) boot: ## Label            Usage          Type ST Offset   Length
+I (58) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (65) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (71) boot:  2 factory          factory app      00 00 00010000 006d6000
+I (78) boot:  3 storage          Unknown data     01 81 006e6000 00100000
+I (84) boot: End of partition table
+I (87) esp_image: segment 0: paddr=00010020 vaddr=3c240020 size=265914h (2513172) map
+I (538) esp_image: segment 1: paddr=0027593c vaddr=3fc9b300 size=05ee4h ( 24292) load
+I (543) esp_image: segment 2: paddr=0027b828 vaddr=40374000 size=047f0h ( 18416) load
+I (548) esp_image: segment 3: paddr=00280020 vaddr=42000020 size=23181ch (2299932) map
+I (955) esp_image: segment 4: paddr=004b1844 vaddr=403787f0 size=12acch ( 76492) load
+I (972) esp_image: segment 5: paddr=004c4318 vaddr=50000000 size=0001ch (    28) load
+I (981) boot: Loaded app from partition at offset 0x10000
+I (981) boot: Disabling RNG early entropy source...
+I (992) octal_psram: vendor id    : 0x0d (AP)
+I (992) octal_psram: dev id       : 0x02 (generation 3)
+I (992) octal_psram: density      : 0x03 (64 Mbit)
+I (994) octal_psram: good-die     : 0x01 (Pass)
+I (998) octal_psram: Latency      : 0x01 (Fixed)
+I (1003) octal_psram: VCC          : 0x01 (3V)
+I (1007) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (1012) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (1017) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (1021) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (1027) octal_psram: DriveStrength: 0x00 (1/1)
+I (1032) MSPI Timing: PSRAM timing tuning index: 5
+I (1035) esp_psram: Found 8MB PSRAM device
+I (1039) esp_psram: Speed: 80MHz
+I (1042) cpu_start: Multicore app
+I (1478) esp_psram: SPI SRAM memory test OK
+I (1486) cpu_start: GPIO 44 and 43 are used as console UART I/O pins
+I (1487) cpu_start: Pro cpu start user code
+I (1487) cpu_start: cpu freq: 160000000 Hz
+I (1489) app_init: Application information:
+I (1493) app_init: Project name:     camera_catdog_live
+I (1498) app_init: App version:      1
+I (1501) app_init: Compile time:     Sep 27 2026 13:54:45
+I (1506) app_init: ELF file SHA256:  d21b811b1...
+I (1511) app_init: ESP-IDF:          v5.4.4
+I (1515) efuse_init: Min chip rev:     v0.0
+I (1518) efuse_init: Max chip rev:     v0.99 
+I (1523) efuse_init: Chip rev:         v0.2
+I (1527) heap_init: Initializing. RAM available for dynamic allocation:
+I (1533) heap_init: At 3FCB3E30 len 000358E0 (214 KiB): RAM
+I (1538) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (1543) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (1549) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (1554) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (1562) spi_flash: detected chip: generic
+I (1564) spi_flash: flash io: dio
+I (1568) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (1574) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (1581) main_task: Started on CPU0
+I (1591) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (1591) main_task: Calling app_main()
+I (1611) led_gpio: LED Indicator Version: 2.1.2
+I (1611) gpio: GPIO[3]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+I (1611) led_gpio: Indicator create successfully. type:GPIO mode, hardware_data:0x3fcc1438, blink_lists:custom
+I (1621) camera_catdog_live: Loading cat/dog classifier from flash rodata
+W (2131) dl::Model: minimize() will delete unused inference variables, breaking model testing/debugging.
+I (2131) camera_catdog_live: Classifier loaded successfully
+I (2131) s3 ll_cam: DMA Channel=0
+I (2141) cam_hal: cam init ok
+I (2141) sccb-ng: pin_sda 4 pin_scl 5
+I (2141) sccb-ng: sccb_i2c_port=1
+I (2161) camera: Camera PID=0x26 VER=0x42 MIDL=0x7f MIDH=0xa2
+I (2161) camera: Detected OV2640 camera
+I (2161) camera: Detected camera at address=0x30
+I (2231) cam_hal: PSRAM DMA mode disabled
+I (2231) s3 ll_cam: node_size: 3840, nodes_per_line: 1, lines_per_node: 8
+I (2231) s3 ll_cam: dma_half_buffer_min:  3840, dma_half_buffer: 11520, lines_per_half_buffer: 24, dma_buffer_size: 23040
+I (2241) cam_hal: buffer_size: 23040, half_buffer_size: 11520, node_buffer_size: 3840, node_cnt: 6, total_cnt: 10
+I (2251) cam_hal: Allocating 115200 Byte frame buffer in PSRAM
+I (2261) cam_hal: Allocating 115200 Byte frame buffer in PSRAM
+I (2261) cam_hal: Allocating 115200 Byte frame buffer in PSRAM
+I (2271) cam_hal: cam config ok
+I (2271) ov2640: Set PLL: clk_2x: 1, clk_div: 3, pclk_auto: 1, pclk_div: 8
+I (2341) s3 ll_cam: DMA Channel=0
+I (2341) cam_hal: cam init ok
+I (2341) sccb-ng: pin_sda 4 pin_scl 5
+I (2341) sccb-ng: sccb_i2c_port=1
+I (2361) camera: Camera PID=0x26 VER=0x42 MIDL=0x7f MIDH=0xa2
+I (2361) camera: Detected OV2640 camera
+I (2361) camera: Detected camera at address=0x30
+I (2431) cam_hal: PSRAM DMA mode enabled
+I (2431) s3 ll_cam: node_size: 3840, nodes_per_line: 1, lines_per_node: 8
+I (2431) s3 ll_cam: dma_half_buffer_min:  3840, dma_half_buffer: 11520, lines_per_half_buffer: 24, dma_buffer_size: 115200
+I (2441) cam_hal: buffer_size: 115200, half_buffer_size: 11520, node_buffer_size: 3840, node_cnt: 30, total_cnt: 11
+I (2451) cam_hal: Allocating 126736 Byte frame buffer in PSRAM
+I (2461) cam_hal: Frame[0]: Offset: 16, Addr: 0x3C888B00
+I (2461) cam_hal: Allocating 126736 Byte frame buffer in PSRAM
+I (2471) cam_hal: Frame[1]: Offset: 16, Addr: 0x3C8A7A30
+I (2471) cam_hal: Allocating 126736 Byte frame buffer in PSRAM
+I (2481) cam_hal: Frame[2]: Offset: 16, Addr: 0x3C8C6960
+I (2481) cam_hal: cam config ok
+I (2491) ov2640: Set PLL: clk_2x: 1, clk_div: 3, pclk_auto: 1, pclk_div: 8
+I (2561) LVGL: Starting LVGL task
+I (2681) ESP32-S3-EYE: Display initialized with resolution 240x240
+I (2681) ESP32-S3-EYE: Setting LCD backlight: 100%
+I (2681) camera_catdog_live: System ready — camera preview + periodic inference running
+W (2681) WhoFrameCapNode: FrameCapFetch: Unable to peek from an empty frame buffer.
+I (2681) main_task: Returned from app_main()
+I (6451) camera_catdog_live: [1] cat: 0.6926 (推理耗时 3269503 us / 3269.503 ms)
+I (10241) camera_catdog_live: [2] cat: 0.7058 (推理耗时 3264031 us / 3264.031 ms)
+I (14001) camera_catdog_live: [3] cat: 0.7311 (推理耗时 3263771 us / 3263.771 ms)
+I (17791) camera_catdog_live: [4] cat: 0.7432 (推理耗时 3264763 us / 3264.763 ms)
+I (21551) camera_catdog_live: [5] cat: 0.7773 (推理耗时 3264469 us / 3264.469 ms)
+I (25331) camera_catdog_live: [6] cat: 0.8176 (推理耗时 3264659 us / 3264.659 ms)
+I (29091) camera_catdog_live: [7] cat: 0.7549 (推理耗时 3264402 us / 3264.402 ms)
+I (32851) camera_catdog_live: [8] cat: 0.7058 (推理耗时 3264242 us / 3264.242 ms)
+I (36631) camera_catdog_live: [9] cat: 0.7663 (推理耗时 3264073 us / 3264.073 ms)
+I (40391) camera_catdog_live: [10] cat: 0.7311 (推理耗时 3263743 us / 3263.743 ms)
