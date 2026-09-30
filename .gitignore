@@ -10,7 +10,12 @@ venv/
 build/
 managed_components/
 sdkconfig.old
-build2.py
+
+# Week folders - build artifacts
+week1_periodic_upload/build/
+week1_periodic_upload/managed_components/
+week2_request_collection/build/
+week2_request_collection/managed_components/
 
 # Logs & diagnostics
 *.log
@@ -25,3 +30,7 @@ build2.py
 # OS
 .DS_Store
 Thumbs.db
+
+# Excluded folders (not part of this project)
+2/
+wei/

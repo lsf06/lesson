@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.env
+
+# ESP-IDF build artifacts
+build/
+managed_components/
+sdkconfig.old
+build2.py
+
+# Logs & diagnostics
+*.log
+
+# Database
+*.db
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
