@@ -18,6 +18,8 @@ week2_request_collection/build/
 week2_request_collection/managed_components/
 week3_key_feedback/build/
 week3_key_feedback/managed_components/
+week4_nlp_agent/build/
+week4_nlp_agent/managed_components/
 
 # Logs & diagnostics
 *.log
