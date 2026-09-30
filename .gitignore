@@ -16,6 +16,8 @@ week1_periodic_upload/build/
 week1_periodic_upload/managed_components/
 week2_request_collection/build/
 week2_request_collection/managed_components/
+week3_key_feedback/build/
+week3_key_feedback/managed_components/
 
 # Logs & diagnostics
 *.log
