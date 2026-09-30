@@ -1,0 +1,1038 @@
+--- Warning: GDB cannot open serial ports accessed as COMx
+--- Using \\.\COM4 instead...
+--- esp-idf-monitor 1.9.0 on \\.\COM4 115200
+--- Quit: Ctrl+] | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H
+Executing action: monitor
+Running idf_monitor in directory 'D:\lesson\xiaolin\lesson-main (1)\lesson-main\week3_key_feedback\esp32_firmware'
+Executing "D:\lesson\Download\esp-idf\Espressif\python_env\idf5.4_py3.10_env\Scripts\python.exe D:\lesson\Download\esp-idf\Espressif\frameworks\esp-idf-v5.4.4\tools/idf_monitor.py -p COM4 -b 115200 --toolchain-prefix xtensa-esp32s3-elf- --target esp32s3 --revision 0 'D:\lesson\xiaolin\lesson-main (1)\lesson-main\week3_key_feedback\esp32_firmware\build\qma6100_wifi_upload.elf' --force-color -m 'D:\lesson\Download\esp-idf\Espressif\python_env\idf5.4_py3.10_env\Scripts\python.exe' 'D:\lesson\Download\esp-idf\Espressif\frameworks\esp-idf-v5.4.4\tools\idf.py' '-p' 'COM4'"...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0x2a (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037c6e6
+--- 0x4037c6e6: esp_cpu_wait_for_intr at D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/esp_hw_support/cpu.c:64
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2810,len:0x1564
+load:0x403c8700,len:0x4
+load:0x403c8704,len:0xd24
+load:0x403cb700,len:0x2ed4
+entry 0x403c8928
+I (26) boot: ESP-IDF v5.4.4-dirty 2nd stage bootloader
+I (27) boot: compile time Sep 30 2026 14:13:54
+I (27) boot: Multicore bootloader
+I (27) boot: chip revision: v0.2
+I (30) boot: efuse block revision: v1.3
+I (34) boot.esp32s3: Boot SPI Speed : 80MHz
+I (38) boot.esp32s3: SPI Mode       : DIO
+I (41) boot.esp32s3: SPI Flash Size : 2MB
+I (45) boot: Enabling RNG early entropy source...
+I (50) boot: Partition Table:
+I (52) boot: ## Label            Usage          Type ST Offset   Length
+I (59) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (65) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (72) boot:  2 factory          factory app      00 00 00010000 00177000
+I (78) boot: End of partition table
+I (81) esp_image: segment 0: paddr=00010020 vaddr=3c0b0020 size=24550h (148816) map
+I (115) esp_image: segment 1: paddr=00034578 vaddr=3fc9cc00 size=050a8h ( 20648) load
+I (120) esp_image: segment 2: paddr=00039628 vaddr=40374000 size=069f0h ( 27120) load
+I (126) esp_image: segment 3: paddr=00040020 vaddr=42000020 size=af7d4h (718804) map
+I (253) esp_image: segment 4: paddr=000ef7fc vaddr=4037a9f0 size=121a8h ( 74152) load
+I (270) esp_image: segment 5: paddr=001019ac vaddr=50000000 size=0001ch (    28) load
+I (280) boot: Loaded app from partition at offset 0x10000
+I (280) boot: Disabling RNG early entropy source...
+I (290) cpu_start: Multicore app
+I (299) cpu_start: GPIO 44 and 43 are used as console UART I/O pins
+I (300) cpu_start: Pro cpu start user code
+I (300) cpu_start: cpu freq: 160000000 Hz
+I (301) app_init: Application information:
+I (305) app_init: Project name:     qma6100_wifi_upload
+I (310) app_init: App version:      1ff859f
+I (314) app_init: Compile time:     Sep 30 2026 14:13:44
+I (319) app_init: ELF file SHA256:  1c6f3b3bb...
+I (323) app_init: ESP-IDF:          v5.4.4-dirty
+I (327) efuse_init: Min chip rev:     v0.0
+I (331) efuse_init: Max chip rev:     v0.99 
+I (335) efuse_init: Chip rev:         v0.2
+I (339) heap_init: Initializing. RAM available for dynamic allocation:
+I (345) heap_init: At 3FCC23A0 len 00027370 (156 KiB): RAM
+I (351) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (356) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (361) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (367) spi_flash: detected chip: generic
+I (370) spi_flash: flash io: dio
+W (373) spi_flash: Detected size(8192k) larger than the size in the binary image header(2048k). Using the size in the binary image header.
+I (385) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (391) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (398) main_task: Started on CPU0
+I (408) main_task: Calling app_main()
+I (408) MAIN: === ESP32-S3-EYE QMA6100P + Wi-Fi Upload v4 ===
+I (428) pp: pp rom version: e7ae62f
+I (428) net80211: net80211 rom version: e7ae62f
+I (438) wifi:wifi driver task: 3fccccb8, prio:23, stack:6656, core=0
+I (448) wifi:wifi firmware version: 8896d66
+I (448) wifi:wifi certification version: v7.0
+I (448) wifi:config NVS flash: enabled
+I (448) wifi:config nano formatting: disabled
+I (448) wifi:Init data frame dynamic rx buffer num: 32
+I (458) wifi:Init static rx mgmt buffer num: 5
+I (458) wifi:Init management short buffer num: 32
+I (458) wifi:Init dynamic tx buffer num: 32
+I (468) wifi:Init static tx FG buffer num: 2
+I (468) wifi:Init static rx buffer size: 1600
+I (478) wifi:Init static rx buffer num: 10
+I (478) wifi:Init dynamic rx buffer num: 32
+I (478) wifi_init: rx ba win: 6
+I (488) wifi_init: accept mbox: 6
+I (488) wifi_init: tcpip mbox: 32
+I (488) wifi_init: udp mbox: 6
+I (498) wifi_init: tcp mbox: 6
+I (498) wifi_init: tcp tx win: 5760
+I (498) wifi_init: tcp rx win: 5760
+I (498) wifi_init: tcp mss: 1440
+I (508) wifi_init: WiFi IRAM OP enabled
+I (508) wifi_init: WiFi RX IRAM OP enabled
+I (518) phy_init: phy_version 711,97bcf0a2,Aug 25 2025,19:04:10
+I (558) wifi:mode : sta (94:a9:90:1c:6f:88)
+I (558) wifi:enable tsf
+I (558) MAIN: Wi-Fi init done, connecting to 431...
+I (558) MAIN: STA started, connecting...
+I (558) MAIN: Waiting for Wi-Fi connection (extended retry + scan)...
+I (2968) wifi:new:<6,1>, old:<1,0>, ap:<255,255>, sta:<6,1>, prof:1, snd_ch_cfg:0x0
+I (2968) wifi:state: init -> auth (0xb0)
+I (2988) wifi:state: auth -> assoc (0x0)
+I (3028) wifi:state: assoc -> run (0x10)
+I (3058) wifi:connected with 431, aid = 1, channel 6, 40U, bssid = 3c:cd:57:f9:76:82
+I (3058) wifi:security: WPA2-PSK, phy: bgn, rssi: -35, cipher(pairwise:0x3, group:0x3), pmf:0
+I (3068) wifi:pm start, type: 1
+
+I (3068) wifi:dp: 1, bi: 102400, li: 3, scale listen interval from 307200 us to 307200 us
+I (3078) wifi:set rx beacon pti, rx_bcn_pti: 0, bcn_timeout: 25000, mt_pti: 0, mt_time: 10000
+I (3088) MAIN: WiFi connected!
+I (3108) wifi:<ba-add>idx:0 (ifx:0, 3c:cd:57:f9:76:82), tid:7, ssn:0, winSize:64
+I (3168) wifi:AP's beacon interval = 102400 us, DTIM period = 1
+I (4138) esp_netif_handlers: sta ip: 10.1.41.149, mask: 255.255.255.0, gw: 10.1.41.254
+I (4138) MAIN: Got IP: 10.1.41.149
+I (4138) MAIN: WiFi CONNECTED!
+I (6358) wifi:<ba-add>idx:1 (ifx:0, 3c:cd:57:f9:76:82), tid:0, ssn:1, winSize:64
+I (6418) MAIN: SNTP: time synced, TZ=CST-8 active
+I (6438) MAIN: SNTP synced in 2.3s
+I (6438) MAIN: I2C device speed overridden to 100kHz
+I (6438) MAIN: WHO_AM_I: 0x90
+I (6438) MAIN: NVM load: ESP_OK
+I (6538) MAIN: Sensor ready, initializing LCD...
+I (6658) ESP32-S3-EYE: Display initialized with resolution 240x240
+I (6658) ESP32-S3-EYE: Setting LCD backlight: 100%
+I (6678) MAIN: LCD ready (bare-metal, no LVGL)
+I (6678) gpio: GPIO[0]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (6678) MAIN: Week3: button_task(8192) + trigger_http_task(8192) created
+E (9698) esp-tls: [sock=54] select() timeout
+E (9698) transport_base: Failed to open a new connection: 32774
+E (9698) HTTP_CLIENT: Connection failed, sock < 0
+E (9698) MAIN: Poll: HTTP open failed: ESP_ERR_HTTP_CONNECT (err=0x7002)
+E (13718) esp-tls: [sock=54] select() timeout
+E (13718) transport_base: Failed to open a new connection: 32774
+E (13718) HTTP_CLIENT: Connection failed, sock < 0
+E (13718) MAIN: Poll: HTTP open failed: ESP_ERR_HTTP_CONNECT (err=0x7002)
+E (17738) esp-tls: [sock=54] select() timeout
+E (17738) transport_base: Failed to open a new connection: 32774
+E (17738) HTTP_CLIENT: Connection failed, sock < 0
+E (17738) MAIN: Poll: HTTP open failed: ESP_ERR_HTTP_CONNECT (err=0x7002)
+E (21758) esp-tls: [sock=54] select() timeout
+E (21758) transport_base: Failed to open a new connection: 32774
+E (21758) HTTP_CLIENT: Connection failed, sock < 0
+E (21758) MAIN: Poll: HTTP open failed: ESP_ERR_HTTP_CONNECT (err=0x7002)
+E (25778) esp-tls: [sock=54] select() timeout
+E (25778) transport_base: Failed to open a new connection: 32774
+E (25778) HTTP_CLIENT: Connection failed, sock < 0
+E (25778) MAIN: Poll: HTTP open failed: ESP_ERR_HTTP_CONNECT (err=0x7002)
+E (29798) esp-tls: [sock=54] select() timeout
+E (29798) transport_base: Failed to open a new connection: 32774
+E (29798) HTTP_CLIENT: Connection failed, sock < 0
+E (29798) MAIN: Poll: HTTP open failed: ESP_ERR_HTTP_CONNECT (err=0x7002)
+E (33818) esp-tls: [sock=54] select() timeout
+E (33818) transport_base: Failed to open a new connection: 32774
+E (33818) HTTP_CLIENT: Connection failed, sock < 0
+E (33818) MAIN: Poll: HTTP open failed: ESP_ERR_HTTP_CONNECT (err=0x7002)
+E (37838) esp-tls: [sock=54] select() timeout
+E (37838) transport_base: Failed to open a new connection: 32774
+E (37838) HTTP_CLIENT: Connection failed, sock < 0
+E (37838) MAIN: Poll: HTTP open failed: ESP_ERR_HTTP_CONNECT (err=0x7002)
+I (37848) MAIN: STATS: ok=0 fail=0 sensor_err=0 polls=8
+I (40118) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (41148) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (42178) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (43208) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (44248) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (45298) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (46328) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (47368) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (48428) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (49458) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (50528) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (51568) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (52608) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (53658) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (54698) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (55738) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (56768) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (57838) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (58878) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (59918) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (60948) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (61988) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (63038) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (64078) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (65118) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (66168) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (67208) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (68248) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (68248) MAIN: STATS: ok=0 fail=0 sensor_err=0 polls=36
+I (69298) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (70328) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (71368) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (72408) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (73448) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (74488) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (75528) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (76568) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (77608) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (78648) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (79688) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (80718) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (81758) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (82798) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (83838) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (84888) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (85938) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (86968) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (88008) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (89048) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (90078) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (91188) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (92498) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (93528) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (94568) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (95618) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (96658) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (97698) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (98748) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (98748) MAIN: STATS: ok=0 fail=0 sensor_err=0 polls=65
+I (99778) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (100818) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (101868) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (102908) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (103948) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (104988) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (106048) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (107078) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (108118) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (109158) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (110188) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (111228) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (112258) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (113278) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (114318) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (115368) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (116408) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (117438) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (118478) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (119518) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (120558) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (121608) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (122648) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (123688) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (124728) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (125778) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (126828) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (127868) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (128918) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (128918) MAIN: STATS: ok=0 fail=0 sensor_err=0 polls=94
+I (129948) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (131008) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (132038) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (133058) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (134118) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (135168) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (136218) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (137248) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (138288) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (139318) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (140368) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (141408) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (142438) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (143478) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (144518) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (145568) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (146608) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (147658) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (148708) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (149738) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (150778) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (151818) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (152858) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (153898) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (154928) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (155978) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (157008) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (158048) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (159088) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (159088) MAIN: STATS: ok=0 fail=0 sensor_err=0 polls=123
+I (160138) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (161168) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (162208) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (163258) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (164298) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (165338) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (166398) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (166768) MAIN: BUTTON: TRIGGER event_id=20260930_181953_3C2F LCD=TRIGGERED
+LOCAL_TRIGGERED event_id=20260930_181953_3C2F
+I (166768) MAIN: HTTP: POST /api/trigger event_id=20260930_181953_3C2F
+I (166768) MAIN: Sending trigger to URL: http://10.1.41.43:5000/api/trigger
+W (166968) MAIN: HTTP: NO_ACK event_id=20260930_181953_3C2F
+NETWORK_TIMEOUT_NO_ACK event_id=20260930_181953_3C2F
+I (167448) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (168478) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (168998) MAIN: BUTTON: CANCEL event_id=20260930_181953_3C2F LCD=IDLE
+CANCEL_TRIGGERED event_id=20260930_181953_3C2F
+I (168998) MAIN: HTTP: POST /api/cancel event_id=20260930_181953_3C2F
+I (168998) MAIN: Sending trigger to URL: http://10.1.41.43:5000/api/trigger
+I (169108) MAIN: CANCEL HTTP 200
+I (169518) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (170478) MAIN: BUTTON: TRIGGER event_id=20260930_181956_B668 LCD=TRIGGERED
+LOCAL_TRIGGERED event_id=20260930_181956_B668
+I (170478) MAIN: HTTP: POST /api/trigger event_id=20260930_181956_B668
+I (170478) MAIN: Sending trigger to URL: http://10.1.41.43:5000/api/trigger
+I (170558) MAIN: Poll response (22 bytes): {"has_request":false}
+
+W (170568) MAIN: HTTP: NO_ACK event_id=20260930_181956_B668
+NETWORK_TIMEOUT_NO_ACK event_id=20260930_181956_B668
+I (171598) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (172628) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (172858) MAIN: BUTTON: CANCEL event_id=20260930_181956_B668 LCD=IDLE
+CANCEL_TRIGGERED event_id=20260930_181956_B668
+I (172858) MAIN: HTTP: POST /api/cancel event_id=20260930_181956_B668
+I (172858) MAIN: Sending trigger to URL: http://10.1.41.43:5000/api/trigger
+I (173088) MAIN: CANCEL HTTP 200
+I (173658) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (174688) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (175728) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (176788) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (177828) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (178938) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (179988) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (181038) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (182068) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (183098) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (184138) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (185178) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (186218) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (187248) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (188288) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (189318) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (189318) MAIN: STATS: ok=0 fail=0 sensor_err=0 polls=152
+I (190348) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (191378) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (192418) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (193468) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (194548) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (195578) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (196608) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (197668) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (198698) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (199728) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (200758) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (201818) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (202858) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (203938) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (204968) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (206008) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (207058) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (208098) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (209138) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (210188) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (211228) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (212358) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (213448) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (214558) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (215608) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (216648) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (217698) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (218738) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (219768) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (219768) MAIN: STATS: ok=0 fail=0 sensor_err=0 polls=181
+I (220808) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (221838) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (222878) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (223908) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (224948) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (225998) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (227038) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (228068) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (229098) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (230138) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (231178) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (232198) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (233258) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (234298) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (235338) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (236368) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (237408) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (238448) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (239498) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (240568) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (241618) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (242658) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (243698) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (244738) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (245788) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (246828) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (247868) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (248918) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (249968) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (249968) MAIN: STATS: ok=0 fail=0 sensor_err=0 polls=210
+I (250998) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (252038) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (253068) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (254098) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (255148) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (256178) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (257218) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (258258) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (259298) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (260338) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (261368) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (262398) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (263448) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (264488) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (265518) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (266558) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (267608) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (268648) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (269688) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (270718) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (271768) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (272798) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (273838) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (274878) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (275908) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (276948) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (277978) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (279048) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (280088) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (280088) MAIN: STATS: ok=0 fail=0 sensor_err=0 polls=239
+I (281138) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (282168) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (283208) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (284248) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (285288) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (286328) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (287368) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (288398) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (289438) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (290478) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (291528) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (292558) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (293598) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (294648) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (295688) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (296738) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (297788) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (298828) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (299858) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (300898) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (301938) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (302968) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (304008) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (305048) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (306098) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (307138) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (308178) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (309208) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (310248) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (310248) MAIN: STATS: ok=0 fail=0 sensor_err=0 polls=268
+I (311298) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (312348) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (313388) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (314428) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (315458) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (316498) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (317538) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (318578) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (319608) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (320648) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (321678) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (322738) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (323778) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (324818) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (325868) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (326918) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (327958) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (329008) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (330058) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (331098) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (332148) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (333358) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (334458) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (335548) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (336608) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (337658) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (338688) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (339748) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (340788) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (340788) MAIN: STATS: ok=0 fail=0 sensor_err=0 polls=297
+I (341838) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (342878) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (343928) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (344978) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (346018) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (347068) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (348108) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (349158) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (350198) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (351228) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (352288) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (353338) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (354378) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (355408) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (356448) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (357498) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (358548) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (359588) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (360638) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (361698) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (362748) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (363788) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (364818) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (365858) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (366898) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (367938) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (368988) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (370028) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (371098) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (371098) MAIN: STATS: ok=0 fail=0 sensor_err=0 polls=326
+I (372128) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (373168) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (374208) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (375258) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (376298) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (377348) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (378408) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (379448) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (380538) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (381578) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (382628) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (383668) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (384708) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (385748) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (386778) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (387818) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (388878) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (389938) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (390978) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (392038) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (393068) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (394128) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (395168) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (396208) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (397238) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (398278) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (399318) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (400368) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (401408) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (401408) MAIN: STATS: ok=0 fail=0 sensor_err=0 polls=355
+I (402458) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (403488) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (404548) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (405598) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (406648) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (407718) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (408778) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (409838) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (410888) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (411938) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (412978) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (414008) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (415048) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (416068) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (417108) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (418158) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (419188) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (420228) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (421268) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (422308) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (423338) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (424378) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (425428) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (426458) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (427498) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (428538) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (429588) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (430628) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (431668) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (431668) MAIN: STATS: ok=0 fail=0 sensor_err=0 polls=384
+I (432698) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (433738) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (434788) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (435818) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (436868) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (437908) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (438938) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (439968) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (441008) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (442058) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (443088) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (444128) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (445158) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (446198) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (447218) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (448268) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (449308) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (450358) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (451398) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (452428) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (453608) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (454728) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (455858) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (456948) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (457978) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (459018) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (460048) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (461088) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (462118) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (462118) MAIN: STATS: ok=0 fail=0 sensor_err=0 polls=413
+I (463158) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (464198) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (465228) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (466268) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (467288) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (468338) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (469368) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (470408) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (471458) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (472508) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (473538) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (474598) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (475628) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (476658) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (477718) MAIN: Poll response (22 bytes): {"has_request":false}
+
+I (478768) MAIN: Poll response (22 bytes): {"has_request":false}
+
