@@ -42,3 +42,21 @@ Thumbs.db
 # Excluded folders (not part of this project)
 2/
 wei/
+week7_image_capture/server/static/captured/
+week7_image_capture/esp32_firmware/build/
+week7_image_capture/esp32_firmware/managed_components/
+# Debug & scratch scripts (root level)
+/build_err.txt
+/build_flash_log.txt
+/build_out.txt
+/fix_*.py
+/fix_*.txt
+/generate_precaptured.py
+/monitor_*.txt
+/monitor_reader.py
+/run_monitor.ps1
+/verify_*.py
+/write_*.py
+
+# ESP32-CAM embedded git (use submodule or keep detached)
+week7_image_capture/esp32_firmware/components/esp32-camera/

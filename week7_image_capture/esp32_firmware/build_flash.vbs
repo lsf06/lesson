@@ -1,0 +1,2 @@
+Set WshShell = CreateObject("WScript.Shell")
+WshShell.Run "cmd.exe /c call D:\lesson\Download\esp-idf\Espressif\frameworks\esp-idf-v5.4.4\export.bat > nul 2>&1 && cd /d D:\lesson\xiaolin\lesson-main (1)\lesson-main\week7_image_capture\esp32_firmware && idf.py build > D:\lesson\xiaolin\lesson-main (1)\lesson-main\week7_image_capture\esp32_firmware\build_final_log.txt 2>&1 && idf.py -p COM4 flash >> D:\lesson\xiaolin\lesson-main (1)\lesson-main\week7_image_capture\esp32_firmware\build_final_log.txt 2>&1", 0, False
