@@ -1,0 +1,13 @@
+@echo off
+set IDF_PATH=D:\lesson\Download\esp-idf\Espressif\frameworks\esp-idf-v5.4.4
+set IDF_TOOLS_PATH=D:\lesson\Download\esp-idf\Espressif
+set IDF_PYTHON_ENV_PATH=D:\lesson\Download\esp-idf\Espressif\python_env\idf5.4_py3.10_env
+set PYTHON=D:\lesson\Download\esp-idf\Espressif\python_env\idf5.4_py3.10_env\Scripts\python.exe
+set PATH=D:\lesson\Download\esp-idf\Espressif\tools\cmake\3.30.2\bin;D:\lesson\Download\esp-idf\Espressif\tools\ninja\1.12.1;D:\lesson\Download\esp-idf\Espressif\tools\xtensa-esp-elf\esp-14.2.0_20260121\xtensa-esp-elf\bin;%PATH%
+set OPENOCD_SCRIPTS=D:\lesson\Download\esp-idf\Espressif\tools\openocd-esp32\share\openocd\scripts
+
+cd /d "d:\lesson\xiaolin\lesson-main (1)\lesson-main\week3_key_feedback\esp32_firmware"
+
+echo ========== INCREMENTAL BUILD %date% %time% ========== > build_log.txt
+%PYTHON% "%IDF_PATH%\tools\idf.py" -DIDF_BUILD_JOBS=2 build >> build_log.txt 2>&1
+echo ========== FINISHED %date% %time% ERRORLEVEL=%ERRORLEVEL% ========== >> build_log.txt
