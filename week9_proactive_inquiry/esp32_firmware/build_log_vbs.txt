@@ -1,0 +1,135 @@
+VBS_STARTED: 2026/10/1 13:23:26
+Executing action: all (aliases: build)
+Running ninja in directory 'D:\lesson\xiaolin\lesson-main (1)\lesson-main\week7_image_capture\esp32_firmware\build'
+Executing "ninja all"...
+[1/7] Performing build step for 'bootloader'
+[0/1] Re-running CMake...
+-- Building ESP-IDF components for target esp32s3
+-- Project sdkconfig file D:/lesson/xiaolin/lesson-main (1)/lesson-main/week7_image_capture/esp32_firmware/sdkconfig
+-- Compiler supported targets: xtensa-esp-elf
+-- Adding linker script D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/soc/esp32s3/ld/esp32s3.peripherals.ld
+-- Bootloader project name: "bootloader" version: 1
+-- Adding linker script D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/esp_rom/esp32s3/ld/esp32s3.rom.ld
+-- Adding linker script D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/esp_rom/esp32s3/ld/esp32s3.rom.api.ld
+-- Adding linker script D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/esp_rom/esp32s3/ld/esp32s3.rom.bt_funcs.ld
+-- Adding linker script D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/esp_rom/esp32s3/ld/esp32s3.rom.libgcc.ld
+-- Adding linker script D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/esp_rom/esp32s3/ld/esp32s3.rom.wdt.ld
+-- Adding linker script D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/esp_rom/esp32s3/ld/esp32s3.rom.version.ld
+-- Adding linker script D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/esp_rom/esp32s3/ld/esp32s3.rom.newlib.ld
+-- Adding linker script D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/esp_rom/esp32s3/ld/esp32s3.rom.newlib.ld
+-- Adding linker script D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/bootloader/subproject/main/ld/esp32s3/bootloader.ld
+-- Adding linker script D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/bootloader/subproject/main/ld/esp32s3/bootloader.rom.ld
+-- Components: bootloader bootloader_support efuse esp_app_format esp_bootloader_format esp_common esp_hw_support esp_rom esp_security esp_system esptool_py freertos hal log main micro-ecc newlib partition_table soc spi_flash xtensa
+-- Component paths: D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/bootloader D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/bootloader_support D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/efuse D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/esp_app_format D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/esp_bootloader_format D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/esp_common D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/esp_hw_support D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/esp_rom D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/esp_security D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/esp_system D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/esptool_py D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/freertos D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/hal D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/log D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/bootloader/subproject/main D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/bootloader/subproject/components/micro-ecc D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/newlib D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/partition_table D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/soc D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/spi_flash D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/xtensa
+-- Configuring done (4.9s)
+-- Generating done (0.1s)
+-- Build files have been written to: D:/lesson/xiaolin/lesson-main (1)/lesson-main/week7_image_capture/esp32_firmware/build/bootloader
+[1/2] C:\windows\system32\cmd.exe /C "cd /D "D:\lesson\xiaolin\lesson-main (1)\lesson-main\week7_image_capture\esp32_firmware\build\bootloader\esp-idf\esptool_py" && D:\lesson\Download\esp-idf\Espressif\python_env\idf5.4_py3.10_env\Scripts\python.exe D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/partition_table/check_sizes.py --offset 0x8000 bootloader 0x0 "D:/lesson/xiaolin/lesson-main (1)/lesson-main/week7_image_capture/esp32_firmware/build/bootloader/bootloader.bin""
+Bootloader binary size 0x51c0 bytes. 0x2e40 bytes (36%) free.
+[2/7] No install step for 'bootloader'
+[3/7] Completed 'bootloader'
+[4/7] Generating ld/sections.ld
+[5/7] Linking CXX executable qma6100_wifi_upload.elf
+[6/7] Generating binary image from built executable
+esptool.py v4.11.0
+Creating esp32s3 image...
+Merged 2 ELF sections
+Successfully created esp32s3 image.
+Generated D:/lesson/xiaolin/lesson-main (1)/lesson-main/week7_image_capture/esp32_firmware/build/qma6100_wifi_upload.bin
+[7/7] C:\windows\system32\cmd.exe /C "cd /D "D:\lesson\xiaolin\lesson-main (1)\lesson-main\week7_image_capture\esp32_firmware\build\esp-idf\esptool_py" && D:\lesson\Download\esp-idf\Espressif\python_env\idf5.4_py3.10_env\Scripts\python.exe D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/partition_table/check_sizes.py --offset 0x8000 partition --type app "D:/lesson/xiaolin/lesson-main (1)/lesson-main/week7_image_capture/esp32_firmware/build/partition_table/partition-table.bin" "D:/lesson/xiaolin/lesson-main (1)/lesson-main/week7_image_capture/esp32_firmware/build/qma6100_wifi_upload.bin""
+qma6100_wifi_upload.bin binary size 0x106b50 bytes. Smallest app partition is 0x177000 bytes. 0x704b0 bytes (30%) free.
+
+Project build complete. To flash, run:
+ idf.py flash
+or
+ idf.py -p PORT flash
+or
+ python -m esptool --chip esp32s3 -b 460800 --before default_reset --after hard_reset write_flash --flash_mode dio --flash_size 2MB --flash_freq 80m 0x0 build\bootloader\bootloader.bin 0x8000 build\partition_table\partition-table.bin 0x10000 build\qma6100_wifi_upload.bin
+or from the "D:\lesson\xiaolin\lesson-main (1)\lesson-main\week7_image_capture\esp32_firmware\build" directory
+ python -m esptool --chip esp32s3 -b 460800 --before default_reset --after hard_reset write_flash "@flash_args"
+Executing action: flash
+Running ninja in directory 'D:\lesson\xiaolin\lesson-main (1)\lesson-main\week7_image_capture\esp32_firmware\build'
+Executing "ninja flash"...
+[1/5] C:\windows\system32\cmd.exe /C "cd /D "D:\lesson\xiaolin\lesson-main (1)\lesson-main\week7_image_capture\esp32_firmware\build\esp-idf\esptool_py" && D:\lesson\Download\esp-idf\Espressif\python_env\idf5.4_py3.10_env\Scripts\python.exe D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/partition_table/check_sizes.py --offset 0x8000 partition --type app "D:/lesson/xiaolin/lesson-main (1)/lesson-main/week7_image_capture/esp32_firmware/build/partition_table/partition-table.bin" "D:/lesson/xiaolin/lesson-main (1)/lesson-main/week7_image_capture/esp32_firmware/build/qma6100_wifi_upload.bin""
+qma6100_wifi_upload.bin binary size 0x106b50 bytes. Smallest app partition is 0x177000 bytes. 0x704b0 bytes (30%) free.
+[2/5] Performing build step for 'bootloader'
+[1/1] C:\windows\system32\cmd.exe /C "cd /D "D:\lesson\xiaolin\lesson-main (1)\lesson-main\week7_image_capture\esp32_firmware\build\bootloader\esp-idf\esptool_py" && D:\lesson\Download\esp-idf\Espressif\python_env\idf5.4_py3.10_env\Scripts\python.exe D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/partition_table/check_sizes.py --offset 0x8000 bootloader 0x0 "D:/lesson/xiaolin/lesson-main (1)/lesson-main/week7_image_capture/esp32_firmware/build/bootloader/bootloader.bin""
+Bootloader binary size 0x51c0 bytes. 0x2e40 bytes (36%) free.
+[3/5] No install step for 'bootloader'
+[4/5] Completed 'bootloader'
+[4/5] C:\windows\system32\cmd.exe /C "cd /D D:\lesson\Download\esp-idf\Espressif\frameworks\esp-idf-v5.4.4\components\esptool_py && D:\lesson\Download\esp-idf\Espressif\tools\cmake\3.30.2\bin\cmake.exe -D IDF_PATH=D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4 -D SERIAL_TOOL=D:/lesson/Download/esp-idf/Espressif/python_env/idf5.4_py3.10_env/Scripts/python.exe;;D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/esptool_py/esptool/esptool.py;--chip;esp32s3 -D SERIAL_TOOL_ARGS=--before=default_reset;--after=hard_reset;write_flash;@flash_args -D "WORKING_DIRECTORY=D:/lesson/xiaolin/lesson-main (1)/lesson-main/week7_image_capture/esp32_firmware/build" -P D:/lesson/Download/esp-idf/Espressif/frameworks/esp-idf-v5.4.4/components/esptool_py/run_serial_tool.cmake"
+esptool.py --chip esp32s3 -p COM4 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 80m --flash_size 2MB 0x0 bootloader/bootloader.bin 0x10000 qma6100_wifi_upload.bin 0x8000 partition_table/partition-table.bin
+esptool.py v4.11.0
+Serial port COM4
+Connecting...
+Chip is ESP32-S3 (QFN56) (revision v0.2)
+Features: WiFi, BLE, Embedded PSRAM 8MB (AP_3v3)
+Crystal is 40MHz
+USB mode: USB-Serial/JTAG
+MAC: 94:a9:90:1c:6f:88
+Uploading stub...
+Running stub...
+Stub running...
+Changing baud rate to 460800
+Changed.
+Configuring flash size...
+Flash will be erased from 0x00000000 to 0x00005fff...
+Flash will be erased from 0x00010000 to 0x00116fff...
+Flash will be erased from 0x00008000 to 0x00008fff...
+SHA digest in image updated
+Compressed 20928 bytes to 13328...
+Writing at 0x00000000... (100 %)
+Wrote 20928 bytes (13328 compressed) at 0x00000000 in 0.2 seconds (effective 721.1 kbit/s)...
+Hash of data verified.
+Compressed 1076048 bytes to 657340...
+Writing at 0x00010000... (2 %)
+Writing at 0x0001cdb5... (4 %)
+Writing at 0x000294e9... (7 %)
+Writing at 0x00031002... (9 %)
+Writing at 0x0003c62d... (12 %)
+Writing at 0x00043fb8... (14 %)
+Writing at 0x0004a0af... (17 %)
+Writing at 0x000503f4... (19 %)
+Writing at 0x0005767e... (21 %)
+Writing at 0x0005f0c5... (24 %)
+Writing at 0x000653c8... (26 %)
+Writing at 0x0006b8d1... (29 %)
+Writing at 0x000710a0... (31 %)
+Writing at 0x00076eff... (34 %)
+Writing at 0x0007ce08... (36 %)
+Writing at 0x000829bf... (39 %)
+Writing at 0x000887cf... (41 %)
+Writing at 0x0008e910... (43 %)
+Writing at 0x000948a8... (46 %)
+Writing at 0x00099da0... (48 %)
+Writing at 0x0009ed50... (51 %)
+Writing at 0x000a4585... (53 %)
+Writing at 0x000a9d1a... (56 %)
+Writing at 0x000af231... (58 %)
+Writing at 0x000b471d... (60 %)
+Writing at 0x000b9f2d... (63 %)
+Writing at 0x000bfed0... (65 %)
+Writing at 0x000c5971... (68 %)
+Writing at 0x000cb699... (70 %)
+Writing at 0x000d1a90... (73 %)
+Writing at 0x000d74c2... (75 %)
+Writing at 0x000dd057... (78 %)
+Writing at 0x000e2807... (80 %)
+Writing at 0x000e7c88... (82 %)
+Writing at 0x000ef6ab... (85 %)
+Writing at 0x000f8675... (87 %)
+Writing at 0x000fe24c... (90 %)
+Writing at 0x00103ebc... (92 %)
+Writing at 0x00109f57... (95 %)
+Writing at 0x001108e5... (97 %)
+Writing at 0x00115cd2... (100 %)
+Wrote 1076048 bytes (657340 compressed) at 0x00010000 in 6.0 seconds (effective 1427.1 kbit/s)...
+Hash of data verified.
+Compressed 3072 bytes to 105...
+Writing at 0x00008000... (100 %)
+Wrote 3072 bytes (105 compressed) at 0x00008000 in 0.0 seconds (effective 943.3 kbit/s)...
+Hash of data verified.
+
+Leaving...
+Hard resetting via RTS pin...
+Done
