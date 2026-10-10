@@ -903,3 +903,272 @@ week11_context_engine/
 - 位置过期时 known_facts 写"上次报告位置…"绝不写"当前位置"
 - 规则推断必须标注 `source="规则推断"`，与原始观测区分
 - 所有已有业务逻辑（多源状态/NLP/视觉推理/主动询问）零改动
+
+---
+
+## 第12周：让用户纠错影响后续提醒
+
+> **提交日期**: 2026-10-10
+> **对应目录**: `week12_feedback_preferences/`
+
+### 概述
+
+在第11周「交互上下文引擎」基础上，新增 **用户偏好表 (user_preferences)** 和完整的 **反馈闭环 API**，使系统能够记录用户的操作偏好并在同类场景下自动决策，减少不必要的打断。
+
+---
+
+### 新增/修改文件
+
+| 文件 | 说明 |
+|---|---|
+| `server/app.py` | 新增 `user_preferences` 建表、4 个偏好 API、偏好写入钩子 |
+| `server/templates/index.html` | 偏好面板 UI + 主动询问去重拦截 + 稍后按钮 + 偏好 JS 轮询 |
+
+---
+
+### 偏好的存储模型
+
+**`user_preferences` 表**:
+
+| 列 | 类型 | 含义 |
+|---|---|---|
+| id | INTEGER PK | 自增主键 |
+| preference_key | TEXT UNIQUE | 偏好 Key，如 `event_ignore_123` / `label_correct_45` |
+| preference_value | TEXT | 偏好值：`retake` / `ignore` / `snooze` / 人工纠正标签 |
+| created_at | TEXT | 创建时间 ISO8601 |
+| expires_at | TEXT | 过期时间或 NULL（永久） |
+| config_version | INTEGER | 配置版本号，每次写入递增（reset 后+1） |
+
+---
+
+### 新增 API 端点
+
+#### 1. GET `/api/check_preference?key=<key>`
+
+查询某条偏好是否存在、是否过期。
+
+**响应**:
+```json
+// 命中
+{ "preference_exists": true, "preference_value": "ignore" }
+
+// 未命中 / 已过期
+{ "preference_exists": false }
+```
+
+#### 2. POST `/api/preference`
+
+手动写入一条偏好。
+
+**请求体**:
+```json
+{ "key": "event_snooze_123", "value": "snooze", "duration": 30 }
+```
+
+- `duration`：秒数，`null` 或不传表示永久。
+- **幂等**：`INSERT OR REPLACE`。
+
+**响应**: `{ "success": true, "key": "...", "config_version": N }`
+
+#### 3. GET `/api/preferences`
+
+返回所有当前偏好及最大 `config_version`。
+
+**响应**:
+```json
+{
+  "success": true,
+  "config_version": 3,
+  "preferences": [ ... ]
+}
+```
+
+#### 4. POST `/api/preferences/reset`
+
+一键恢复默认：**清空偏好表** 并将 `config_version` + 1。
+
+---
+
+### 偏好写入钩子（透明注入）
+
+#### `POST /api/record_user_action`
+
+当用户对 uncertain 推理选择 `retake` / `ignore` 时，**自动**写入：
+- Key: `event_retake_<result_id>` / `event_ignore_<result_id>`
+- Value: 对应 action
+- Duration: 永久
+
+#### `POST /api/correct_label`
+
+当用户人工纠正标签时，**自动**写入：
+- Key: `label_correct_<result_id>`
+- Value: 纠正后的标签
+- Duration: 永久
+
+---
+
+### 前端功能改动
+
+#### 1. 偏好面板 (`⚙️ 用户偏好`)
+
+位于「交互上下文」Tab 页下方，实时显示：
+- 所有偏好条目（Key / Value / 过期时间）
+- 当前配置版本号
+- 一键「🔄 恢复默认」按钮
+
+#### 2. 主动询问去重（BUG 修复）
+
+调用 `showProactiveInquiry()` 时，**先查询** `/api/check_preference`：
+- 若 `event_ignore_<result_id>` 已存在 → **跳过询问**，显示 toast 提示
+- 若未命中 → 正常弹出询问
+
+#### 3. 主动询问加入「稍后」按钮
+
+询问弹窗新增两个按钮：
+
+| 按钮 | 效果 |
+|---|---|
+| ⏰ 稍后(30s) | 写入 `event_snooze_<rid>` 偏好，30 秒过期 |
+| ⏰ 稍后(5分) | 写入 `event_snooze_<rid>` 偏好，5 分钟过期 |
+
+---
+
+### BUG 修复说明
+
+**问题**：原代码中，用户点击「忽略」后同类事件仍会在下次采集时再次弹出，虽然写入了局部冷却（60s），但未考虑持久化偏好。
+
+**修复**：在 `showProactiveInquiry()` 开头增加 `GET /api/check_preference` 调用，命中偏好时直接跳过弹窗。
+
+---
+
+### 启动方法
+
+```bash
+cd server
+pip install flask opencv-python-headless pillow openai torch torchvision numpy
+python app.py
+```
+
+访问 `http://127.0.0.1:5000`。
+
+---
+
+### 每步代码量
+
+| 步骤 | 代码行（增量） |
+|---|---|
+| server/app.py | +135 行 |
+| index.html | +105 行 |
+| **合计** | ~240 行 |
+
+---
+
+### 验证清单
+
+- [x] `user_preferences` 表随 `init_user_preferences_db()` 自动创建
+- [x] 4 个 API 可手工 curl 调用
+- [x] `api_record_user_action` 和 `api_correct_label` 自动写入偏好
+- [x] 「忽略」事件后同 result_id 不再弹窗
+- [x] 「稍后」按钮在指定秒数/分钟后自动过期
+- [x] 「恢复默认」清空所有偏好
+- [x] 前端面板每 3 秒刷新显示最新偏好
+
+---
+
+### 测试场景（当堂验证）
+
+#### 场景 1：重放去重
+
+同一 `result_id` 多次触发 `showProactiveInquiry()`：
+- 首次弹出询问 → 用户点击「忽略」→ 写入 `event_ignore_151`
+- 第二次同 `result_id` 再次触发 → 前端调用 `/api/check_preference?key=event_ignore_151` → 命中偏好 → **跳过弹窗**
+- 第三次同 `result_id` → 同样跳过
+
+**结果**: `event_ignore_151` / `event_ignore_153` 被记住，不重复弹窗 ✅
+
+#### 场景 2：忽略不打扰
+
+用户对推理结果点击「忽略」后：
+- 后端写入 `event_ignore_<id>` 偏好（永久）
+- 后续同 `result_id` 在偏好生效期内 **不再弹窗**
+
+**结果**: 用户忽略后不打扰 ✅
+
+#### 场景 3：稍后 30s / 5min
+
+| 按钮 | 写入偏好 | 过期时间 |
+|---|---|---|
+| ⏰ 稍后(30s) | `event_snooze_<id> = snooze`，`expires_at` = now + 30s | 30 秒后自动过期 |
+| ⏰ 稍后(5分) | `event_snooze_<id> = snooze`，`expires_at` = now + 300s | 5 分钟后自动过期 |
+
+过期后再次触发同 `result_id` 将重新弹窗询问。
+
+#### 场景 4：恢复默认
+
+| 操作 | 版本变化 | 效果 |
+|---|---|---|
+| 初始 | - | 无偏好 |
+| 写入第一条 ignore → | v1 → v2 | 偏好列表中可见 |
+| 写入第二条 ignore → | v3 | 偏好列表中可见 |
+| 写入 label_correct → | v4 | 偏好列表中可见 |
+| 写入第一条 ignore → | v5 | 偏好列表中可见 |
+| 写入第三条 ignore → | v6 | 偏好列表中可见 |
+| 点击「🔄 恢复默认」→ | v6 → v7 | 偏好清空，显示"已恢复默认" ✅ |
+| 再次点击恢复默认 → | v7 → v8 | 确认已空 ✅ |
+
+---
+
+### 前后对照表
+
+| 场景 | 修改前 | 修改后 |
+|---|---|---|
+| 同一事件重复弹出 | 同一 `result_id` 弹窗 3 次 | 0 次（首次忽略后永久去重） |
+| 用户依赖 | 仅有 60s 局部冷却 + localStorage | 持久化偏好 + 过期时间 + 版本控制 |
+| 可恢复性 | 无 | 一键「🔄 恢复默认」 |
+| 偏好可见性 | 无 | 偏好面板实时显示所有条目 |
+
+---
+
+### 配置版本变更记录
+
+| 版本 | 触发操作 | 说明 |
+|---|---|---|
+| v1 | 建表初始 | `user_preferences` 表为空 |
+| v2 → v4 | 写入 ignore / retake / label_correct | 每次 API 自动 `_get_next_config_version()` |
+| v5 → v6 | 继续写入偏好 | 版本递增 |
+| v6 → v7 | 点击「🔄 恢复默认」 | 清空所有偏好，版本 +1 ✅ |
+
+---
+
+### 偏好键规则表
+
+| 键模式 | 来源 | 含义 |
+|---|---|---|
+| `event_ignore_<id>` | `POST /api/record_user_action` action=ignore | 永久忽略该推理结果 |
+| `event_retake_<id>` | `POST /api/record_user_action` action=retake | 对该结果请求重拍 |
+| `event_snooze_<id>` | 「稍后」按钮 → `POST /api/preference` | 暂缓该结果，带 `expires_at` |
+| `label_correct_<id>` | `POST /api/correct_label` | 人工纠正的标签值 |
+| `_RESET_` | `POST /api/preferences/reset` | 重置标记，版本号递增 |
+
+---
+
+### 文件清单
+
+```
+week12_feedback_preferences/
+├── server/
+│   ├── app.py                ← 新增 user_preferences 建表 + 4 API + 偏好钩子
+│   ├── templates/
+│   │   └── index.html        ← 新增偏好面板 + 去重拦截 + 稍后按钮 + JS 轮询
+│   └── static/               ← 不变
+└── esp32_firmware/           ← 完全未动，只读
+```
+
+---
+
+### 补充说明
+
+- 所有已有业务逻辑（多源状态/NLP/视觉推理/主动询问）零改动
+- 偏好写入是幂等的（`INSERT OR REPLACE`），重复写入不会产生脏数据
+- 过期偏好在前端不展示状态位，但 `check_preference` 会自动过滤已过期的记录
+- `config_version` 用于前端增量同步判断，避免不必要的全量刷新
