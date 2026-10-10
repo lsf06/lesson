@@ -786,3 +786,120 @@ week10_multi_source_state/
 - GPS 源明确标注"回放数据-仅供演示"，不冒充真实 GNSS 数据
 - 每个源的状态卡片都有独立的来源标注（source_location）
 - 所有代码修改仅位于 week10 目录，week9 未动，ESP32 固件未修改
+
+---
+
+## 第11周：根据多源证据组织交互上下文
+
+> **提交日期**: 2026-10-10
+> **对应目录**: week11_context_engine/
+
+### 1. 项目概述
+
+在第10周多源状态追踪基础上，新增 **上下文解释引擎（Context Engine）**，将4个数据源的原始观测转换为三层结构化输出（原始观测 → 派生状态 → 交互决策），实现：
+- 加速度模长判断静止/移动（`is_moving`）
+- GPS 可信度评估（`position_trustworthy`）
+- 摄像头可用性判断（`camera_usable`）
+- 已知事实 / 不确定项 / 追问语句 自动生成
+
+---
+
+### 2. 运行方式
+
+```bash
+cd week11_context_engine/server/
+pip install flask matplotlib pillow rembg numpy opencv-python-headless --quiet
+python app.py
+```
+
+浏览器访问：**http://localhost:5000** → 点击顶部Tab **"🧠 交互上下文"**
+
+---
+
+### 3. 三层结构
+
+| 层级 | 说明 | 示例字段 |
+|------|------|----------|
+| raw_observations | DB 直读各源原始值 | `sensor: {ax,ay,az}`, `gps: {lat,lng}`, `network: WiFi connected` |
+| derived_states | 固定规则推演 | `is_moving`, `position_trustworthy`, `camera_usable` |
+| interaction | 上下文决策 | `known_facts[]`, `uncertain_items[]`, `question`, `rule_version` |
+
+**推导规则：**
+- `is_moving`：\|√(ax²+ay²+az²) - 9.81\| > 0.5 → "可能在移动"，否则"静止"
+- `position_trustworthy`：GPS status=success 且 age<60s → true
+- `camera_usable`：camera status=success 且 age<60s → true
+
+---
+
+### 4. 当堂验证考点（全部通过）
+
+#### 场景①：陈旧位置 — "无有效解"不包装成"当前位置"
+
+| 层级 | 字段 | 实际值 |
+|------|------|--------|
+| raw_observations | gps.status | failed |
+| interaction.uncertain_items | item=当前位置 | `GPS 无有效解，非故障` |
+
+✅ 正确走 `elif status==failed` 分支，未伪装成"当前位置"。
+
+#### 场景②：摄像头不可用 — "画面不可用"绝无"危险"
+
+| 层级 | 字段 | 实际值 |
+|------|------|--------|
+| derived_states | camera_usable | false（age>60s） |
+| interaction.uncertain_items | item=画面内容 | `画面不可用` |
+
+✅ 全输出中无"危险""紧急"。
+
+#### 场景③：模型推断 vs 观测区分
+
+| fact | source |
+|------|--------|
+| `当前可能静止` | **规则推断** |
+| `网络连接正常` | **网络连接** |
+
+✅ 规则推断与原始观测 source 字段可追溯。
+
+#### 场景④：冲突输入 — 三者独立
+
+| 源 | known_facts | uncertain_items |
+|----|-------------|-----------------|
+| 🌐 网络 (age=32s) | `网络连接正常` | — |
+| 📍 GPS (failed) | — | `当前位置` → GPS 无有效解 |
+| 📷 摄像头 (age>60s) | — | `画面内容` → 画面不可用 |
+
+✅ 网络正常≠位置正常，互不干扰。
+
+---
+
+### 5. API 端点
+
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/api/context` | GET | 返回三层结构化上下文（raw_observations + derived_states + interaction） |
+| `/api/source_states` | GET | 继承第10周，多源状态原始数据 |
+| `/api/simulate_no_fix` | POST | 继承第10周，模拟 GPS no_fix |
+
+---
+
+### 6. 文件清单
+
+```
+week11_context_engine/
+├── server/
+│   ├── app.py                ← 新增 RULES_VERSION, MOVING_THRESHOLD, /api/context 端点
+│   ├── templates/
+│   │   └── index.html        ← 新增 🧠交互上下文 Tab + 三块面板 + JS 轮询
+│   └── static/               ← 不变
+├── README_SUBMIT.md          ← 冲突样例 + 三层对照表
+└── esp32_firmware/           ← 完全未动，只读
+```
+
+---
+
+### 7. 补充说明
+
+- 摄像头不可用时 uncertain_items 仅写"画面不可用"，绝不出现"危险""紧急"
+- 位置过期时 known_facts 写"上次报告位置…"绝不写"当前位置"
+- 规则推断必须标注 `source="规则推断"`，与原始观测区分
+- 所有已有业务逻辑（多源状态/NLP/视觉推理/主动询问）零改动
