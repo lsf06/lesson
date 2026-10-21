@@ -1178,7 +1178,7 @@ week12_feedback_preferences/
 ## 第13周：边缘推理能力注册与云+本地回退
 
 > **提交日期**: 2026-10-13
-> **对应目录**: `week13_14_edge_inference/`
+> **对应目录**: `week13_14_15_edge_inference/`（涵盖第13、14、15周全功能完整版）
 
 ### 1. 功能概述
 
@@ -1243,7 +1243,7 @@ python app.py
 
 ## 第14周：离线缓存与断网续传 + 看门狗加固
 
-> **对应目录**: `week13_14_edge_inference/`（合并于第13周目录）
+> **对应目录**: `week13_14_15_edge_inference/`（涵盖第13、14、15周全功能完整版）
 
 ### 1. 功能概述
 
@@ -1302,7 +1302,7 @@ python app.py
 ### 文件清单
 
 ```
-week13_14_edge_inference/
+week13_14_15_edge_inference/     ← 涵盖第13、14、15周全功能完整版
 ├── esp32_firmware/
 │   ├── main/
 │   │   └── main.c              ← 环形缓冲区 + 离线续传 + WDT 加固
