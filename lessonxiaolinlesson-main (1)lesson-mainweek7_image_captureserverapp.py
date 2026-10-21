@@ -1,0 +1,1 @@
+"""Natural language query entry point (supports cancellation and result isolation)."""

@@ -10,6 +10,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <math.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
@@ -29,12 +30,13 @@
 #include "esp_camera.h"
 #include "driver/gpio.h"
 #include "esp_random.h"
+#include "esp_timer.h"
 
 /* ====== CONFIGURATION ====== */
 #define WIFI_SSID           "431"
 #define WIFI_PASSWORD       "88888888"
-#define SERVER_URL          "http://10.1.41.43:5000/api/upload"
-#define SERVER_POLL_URL     "http://10.1.41.43:5000/api/pending_request?device_id=group01_esp32s3eye"
+#define SERVER_URL          "http://10.1.41.199:5000/api/upload"
+#define SERVER_POLL_URL     "http://10.1.41.199:5000/api/pending_request?device_id=group01_esp32s3eye"
 #define DEVICE_ID           "group01_esp32s3eye"
 
 #define POLL_INTERVAL_MS    1000    /* poll server every 1 s for pending requests */
@@ -43,8 +45,8 @@
 /* ====== Week3: Button + LCD Status + ACK ====== */
 #define BUTTON_GPIO         GPIO_NUM_0
 #define DEBOUNCE_MS         20
-#define SERVER_TRIGGER_URL  "http://10.1.41.43:5000/api/trigger"
-#define SERVER_CANCEL_URL   "http://10.1.41.43:5000/api/cancel"
+#define SERVER_TRIGGER_URL  "http://10.1.41.199:5000/api/trigger"
+#define SERVER_CANCEL_URL   "http://10.1.41.199:5000/api/cancel"
 #define TRIGGER_TIMEOUT_MS  5000
 
 /* ====== Week7: OV2640 Camera ====== */
@@ -64,7 +66,7 @@
 #define CAMERA_PIN_VSYNC     6
 #define CAMERA_PIN_HREF      7
 #define CAMERA_PIN_PCLK      13
-#define CAPTURE_SERVER_URL   "http://10.1.41.43:5000/api/capture_image"
+#define CAPTURE_SERVER_URL   "http://10.1.41.199:5000/api/capture_image"
 
 static const char *TAG = "MAIN";
 
@@ -86,7 +88,24 @@ static trigger_state_t trigger_state = TRIG_STATE_IDLE;
 static char *current_event_id = NULL;     /* heap-allocated, NULL when idle */
 static bool sntp_synced = false;          /* set by SNTP callback */
 
-/* Messages for button_task 锟?trigger_http_task queue */
+/* ====== Week14: Offline cache + retransmission ring buffer ====== */
+#define CACHE_QUEUE_SIZE    20
+typedef struct {
+    float ax, ay, az;
+    char  time_str[32];
+    char  request_id[64];
+    const char *dev_label;          /* "static" / "moving" */
+    long  original_ts;              /* epoch seconds, collected at */
+    long  retransmit_ts;            /* 0 = live, >0 = retransmitted at */
+} cached_record_t;
+
+static cached_record_t g_cache[CACHE_QUEUE_SIZE];
+static volatile int g_cache_count = 0;
+static volatile int g_cache_head  = 0;   /* read pointer */
+static SemaphoreHandle_t g_cache_mutex = NULL;
+static volatile bool g_wifi_just_reconnected = false;
+
+/* Messages for button_task → trigger_http_task queue */
 typedef enum {
     TRIG_MSG_TRIGGER = 0,   /* button pressed 锟?send /api/trigger */
     TRIG_MSG_CANCEL         /* button pressed again 锟?send /api/cancel */
@@ -125,11 +144,13 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
         wifi_event_sta_disconnected_t *disconn = (wifi_event_sta_disconnected_t *)event_data;
         ESP_LOGW(TAG, "Wi-Fi disconnected (reason=%d), auto-reconnecting...", disconn->reason);
         xEventGroupClearBits(s_wifi_evt, WIFI_CONNECTED_BIT);
+        g_wifi_just_reconnected = false;
         esp_wifi_connect();
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t *ev = (ip_event_got_ip_t *)event_data;
         ESP_LOGI(TAG, "Got IP: " IPSTR, IP2STR(&ev->ip_info.ip));
         xEventGroupSetBits(s_wifi_evt, WIFI_CONNECTED_BIT);
+        g_wifi_just_reconnected = true;
     }
 }
 
@@ -215,8 +236,10 @@ static void sntp_init_time(void)
 }
 
 /* ----------------------- HTTP Poll Request ----------------------- */
-static char *http_poll_request(char **action_out)
+static char *http_poll_request(char **action_out, bool *server_ok)
 {
+    if (server_ok) *server_ok = false;    /* default: not reachable */
+
     esp_http_client_config_t config = {
         .url = SERVER_POLL_URL,
         .method = HTTP_METHOD_GET,
@@ -282,6 +305,9 @@ static char *http_poll_request(char **action_out)
         return NULL;
     }
 
+    /* Server is reachable: got 200 + valid JSON */
+    if (server_ok) *server_ok = true;
+
     cJSON *has_req = cJSON_GetObjectItem(root, "has_request");
     if (!cJSON_IsBool(has_req) || !cJSON_IsTrue(has_req)) {
         cJSON_Delete(root);
@@ -315,19 +341,77 @@ static char *http_poll_request(char **action_out)
     return request_id;
 }
 
+/* ====== Week14: get_valid_timestamp with fallback ====== */
+static long get_valid_timestamp(void) {
+    long t = (long)time(NULL);
+    if (t < 1704067200) {   /* before 2024-01-01 → SNTP never synced */
+        int64_t us = esp_timer_get_time();
+        return (long)(us / 1000000);   /* uptime seconds as relative fallback */
+    }
+    return t;
+}
+
+/* ---- Offline cache helpers ---- */
+static bool cache_is_empty(void)    { return g_cache_count == 0; }
+static int  cache_count(void)       { return g_cache_count; }
+
+static void cache_enqueue(cached_record_t *rec) {
+    if (g_cache_mutex) xSemaphoreTake(g_cache_mutex, portMAX_DELAY);
+    if (g_cache_count >= CACHE_QUEUE_SIZE) {
+        g_cache_head = (g_cache_head + 1) % CACHE_QUEUE_SIZE;
+        g_cache_count--;
+        ESP_LOGW(TAG, "QUEUE FULL, dropped oldest record");
+    }
+    int tail = (g_cache_head + g_cache_count) % CACHE_QUEUE_SIZE;
+    memcpy(&g_cache[tail], rec, sizeof(cached_record_t));
+    g_cache_count++;
+    if (g_cache_mutex) xSemaphoreGive(g_cache_mutex);
+    ESP_LOGI(TAG, "Cached locally (queue=%d/%d)", g_cache_count, CACHE_QUEUE_SIZE);
+}
+
+static void cache_peek(cached_record_t *out) {
+    if (g_cache_mutex) xSemaphoreTake(g_cache_mutex, portMAX_DELAY);
+    if (g_cache_count > 0) memcpy(out, &g_cache[g_cache_head], sizeof(cached_record_t));
+    if (g_cache_mutex) xSemaphoreGive(g_cache_mutex);
+}
+
+static void cache_dequeue(void) {
+    if (g_cache_mutex) xSemaphoreTake(g_cache_mutex, portMAX_DELAY);
+    if (g_cache_count > 0) {
+        g_cache_head = (g_cache_head + 1) % CACHE_QUEUE_SIZE;
+        g_cache_count--;
+    }
+    if (g_cache_mutex) xSemaphoreGive(g_cache_mutex);
+}
+
+/* ====== Week13: Device-side rule inference based on acceleration magnitude ====== */
+static const char* device_infer_accel(float ax, float ay, float az) {
+    float mag = sqrtf(ax*ax + ay*ay + az*az);
+    if (fabsf(mag - 1.0f) > 0.3f) return "moving";
+    return "static";
+}
+
 /* ----------------------- HTTP Upload ----------------------- */
-static esp_err_t http_upload(float ax, float ay, float az, const char *time_str, const char *request_id)
+static esp_err_t http_upload(float ax, float ay, float az, const char *time_str,
+                              const char *request_id, long original_ts, long retransmit_ts)
 {
-    char payload[512];
+    char payload[1024];
     int len;
-    if (request_id) {
+    const char *dev_label = device_infer_accel(ax, ay, az);
+    if (request_id && request_id[0] != '\0') {
         len = snprintf(payload, sizeof(payload),
-                 "{\"device_id\":\"%s\",\"ax\":%.2f,\"ay\":%.2f,\"az\":%.2f,\"device_time\":\"%s\",\"request_id\":\"%s\"}",
-                 DEVICE_ID, ax, ay, az, time_str, request_id);
+                 "{\"device_id\":\"%s\",\"ax\":%.2f,\"ay\":%.2f,\"az\":%.2f,\"device_time\":\"%s\",\"request_id\":\"%s\","
+                 "\"device_inference\":{\"label\":\"%s\",\"source\":\"device\",\"computed_at\":\"%s\"},"
+                 "\"original_ts\":%ld,\"retransmit_ts\":%ld}",
+                 DEVICE_ID, ax, ay, az, time_str, request_id,
+                 dev_label, time_str, original_ts, retransmit_ts);
     } else {
         len = snprintf(payload, sizeof(payload),
-                 "{\"device_id\":\"%s\",\"ax\":%.2f,\"ay\":%.2f,\"az\":%.2f,\"device_time\":\"%s\"}",
-                 DEVICE_ID, ax, ay, az, time_str);
+                 "{\"device_id\":\"%s\",\"ax\":%.2f,\"ay\":%.2f,\"az\":%.2f,\"device_time\":\"%s\","
+                 "\"device_inference\":{\"label\":\"%s\",\"source\":\"device\",\"computed_at\":\"%s\"},"
+                 "\"original_ts\":%ld,\"retransmit_ts\":%ld}",
+                 DEVICE_ID, ax, ay, az, time_str,
+                 dev_label, time_str, original_ts, retransmit_ts);
     }
     if (len < 0 || len >= sizeof(payload)) {
         ESP_LOGE(TAG, "Payload overflow!");
@@ -350,17 +434,22 @@ static esp_err_t http_upload(float ax, float ay, float az, const char *time_str,
     esp_http_client_set_header(client, "Content-Type", "application/json");
     esp_http_client_set_post_field(client, payload, strlen(payload));
 
-        ESP_LOGI(TAG, "Sending trigger to URL: %s", SERVER_TRIGGER_URL);
+    ESP_LOGI(TAG, "Sending to URL: %s", SERVER_URL);
     esp_err_t err = esp_http_client_perform(client);
     if (err == ESP_OK) {
         int status = esp_http_client_get_status_code(client);
         if (status == 200) {
-            ESP_LOGI(TAG, "UPLOAD HTTP 200 OK");
+            if (retransmit_ts > 0) {
+                long delay_s = retransmit_ts - original_ts;
+                ESP_LOGI(TAG, "UPLOAD OK (recovered, delay=%lds)", delay_s > 0 ? delay_s : 0);
+            } else {
+                ESP_LOGI(TAG, "UPLOAD OK (live)");
+            }
         } else {
-            ESP_LOGW(TAG, "HTTP %d (non-200)", status);
+            ESP_LOGW(TAG, "UPLOAD HTTP %d (non-200)", status);
         }
     } else {
-        ESP_LOGE(TAG, "HTTP upload failed: %s (err=0x%x)", esp_err_to_name(err), err);
+        ESP_LOGE(TAG, "UPLOAD FAILED, will cache (err=0x%x)", err);
     }
 
     esp_http_client_cleanup(client);
@@ -813,6 +902,38 @@ static esp_err_t capture_and_upload(void)
     vTaskDelay(pdMS_TO_TICKS(20));
     return err;
 }
+/* ====== Week14: Retransmit cached records after WiFi recovery ====== */
+static void retransmit_cached_records(void) {
+    int n = cache_count();
+    if (n == 0) return;
+    ESP_LOGI(TAG, "RETRANSMIT: sending %d cached records", n);
+    int sent = 0;
+    int attempt = 0;
+    while (!cache_is_empty()) {
+        cached_record_t rec;
+        cache_peek(&rec);
+        rec.retransmit_ts = get_valid_timestamp();
+        attempt++;
+
+        esp_err_t err = http_upload(rec.ax, rec.ay, rec.az, rec.time_str,
+                                     rec.request_id, rec.original_ts, rec.retransmit_ts);
+        esp_task_wdt_reset();
+        if (err == ESP_OK) {
+            cache_dequeue();
+            sent++;
+            ESP_LOGI(TAG, "RETRANSMIT record %d/%d OK (orig_ts=%ld, delay=%lds)",
+                     attempt, n, rec.original_ts, rec.retransmit_ts - rec.original_ts);
+        } else {
+            ESP_LOGW(TAG, "RETRANSMIT record %d/%d FAILED, stopping", attempt, n);
+            break;
+        }
+    }
+    if (sent > 0) {
+        ESP_LOGI(TAG, "RETRANSMIT done: %d/%d records sent, %d remain in queue",
+                 sent, n, cache_count());
+    }
+}
+
 /* ----------------------- Poll Service Task ----------------------- */
 static void poll_service(void *pvParameters)
 {
@@ -827,6 +948,7 @@ static void poll_service(void *pvParameters)
     uint32_t sensor_fail = 0;
     uint32_t poll_cycles = 0;
     uint32_t consecutive_sensor_fail = 0;
+    uint32_t consecutive_poll_fail = 0;     /* Week14: server unreachable counter */
 
     TickType_t last_stats = xTaskGetTickCount();
 
@@ -834,112 +956,166 @@ static void poll_service(void *pvParameters)
         /* Feed the watchdog */
         esp_task_wdt_reset();
 
-        /* --- Check Wi-Fi before any network operation --- */
-        if (!wifi_is_connected()) {
-            ESP_LOGW(TAG, "Wi-Fi lost, waiting for reconnect...");
-            if (!wifi_wait_connected(10000)) {
-                ESP_LOGW(TAG, "Wi-Fi still down, retrying...");
-                vTaskDelay(pdMS_TO_TICKS(2000));
-                continue;
-            }
-            ESP_LOGI(TAG, "Wi-Fi reconnected!");
+        bool wifi_ok = wifi_is_connected();
+
+        /* --- WiFi just recovered → reset counter + flush cache --- */
+        if (g_wifi_just_reconnected && wifi_ok) {
+            g_wifi_just_reconnected = false;
+            consecutive_poll_fail = 0;
+            ESP_LOGI(TAG, "WiFi reconnected, flushing cached records...");
+            retransmit_cached_records();
         }
 
-        /* --- Poll server for a pending collection request --- */
-        esp_task_wdt_reset();  /* Reset WDT before potential 5s HTTP timeout */
+        /* --- Determine whether to collect this cycle --- */
         char *action = NULL;
-        char *request_id = http_poll_request(&action);
-        poll_cycles++;
+        char *request_id = NULL;
+        bool server_ok = false;
+        bool should_collect = false;
 
-        if (request_id) {
-            /* ====== Week7: Check if action is "capture" ====== */
-            if (action && strcmp(action, "capture") == 0) {
-                ESP_LOGI(TAG, "Action = capture, taking photo...");
-                capture_and_upload();
-                free(action);
+        if (!wifi_ok) {
+            /* WiFi physically down → autonomous collection */
+            should_collect = true;
+            ESP_LOGW(TAG, "WiFi down, collecting for local cache...");
+        } else {
+            /* WiFi up → poll server */
+            esp_task_wdt_reset();  /* Reset WDT before potential 3s HTTP timeout */
+            request_id = http_poll_request(&action, &server_ok);
+            poll_cycles++;
+
+            if (!server_ok) {
+                consecutive_poll_fail++;
+            } else {
+                /* Server reachable → flush cache first, then reset counter */
+                if (!cache_is_empty()) {
+                    retransmit_cached_records();
+                }
+                consecutive_poll_fail = 0;
+            }
+
+            if (request_id) {
+                /* Server has pending request → collect */
+                should_collect = true;
+            } else if (consecutive_poll_fail >= 2) {
+                /* Server unreachable for 2+ consecutive polls → cache locally */
+                should_collect = true;
+                ESP_LOGW(TAG, "Server unreachable (%lu consecutive failures), "
+                         "collecting for local cache (queue=%d/%d)",
+                         consecutive_poll_fail, cache_count(), CACHE_QUEUE_SIZE);
+            }
+        }
+
+        if (!should_collect) {
+            free(request_id);
+            vTaskDelay(pdMS_TO_TICKS(POLL_INTERVAL_MS));
+            continue;
+        }
+
+        /* ====== Week7: Check if action is "capture" ====== */
+        if (action && strcmp(action, "capture") == 0) {
+            ESP_LOGI(TAG, "Action = capture, taking photo...");
+            capture_and_upload();
+            free(action);
+            free(request_id);
+            vTaskDelay(pdMS_TO_TICKS(POLL_INTERVAL_MS));
+            continue;
+        }
+        free(action);
+        action = NULL;
+
+        /* ---- Sensor data collection (original logic) ---- */
+        qma6100p_acce_value_t acce = {0};
+        esp_err_t sensor_err = ESP_FAIL;
+
+        esp_err_t wake_r = qma6100p_wake_up(sensor);
+        if (wake_r != ESP_OK) {
+            ESP_LOGW(TAG, "Pre-read wake_up failed: %s (err=0x%x)", esp_err_to_name(wake_r), wake_r);
+        }
+        vTaskDelay(pdMS_TO_TICKS(20));
+
+        for (int retry = 0; retry < 3; retry++) {
+            sensor_err = qma6100p_get_acce(sensor, &acce);
+            if (sensor_err == ESP_OK) {
+                consecutive_sensor_fail = 0;
+                break;
+            }
+            ESP_LOGW(TAG, "Sensor read attempt %d/3 failed: %s (err=0x%x)",
+                     retry + 1, esp_err_to_name(sensor_err), sensor_err);
+            if (retry < 2) {
+                vTaskDelay(pdMS_TO_TICKS(10));
+            }
+        }
+
+        if (sensor_err != ESP_OK) {
+            sensor_fail++;
+            consecutive_sensor_fail++;
+            ESP_LOGW(TAG, "Driver read exhausted (%lu fails, %lu consec), trying raw I2C fallback...",
+                     sensor_fail, consecutive_sensor_fail);
+            sensor_err = qma6100p_raw_read_fallback(sensor, &acce);
+            if (sensor_err != ESP_OK) {
+                ESP_LOGE(TAG, "RAW I2C fallback also failed: %s (err=0x%x). "
+                         "No data available, skipping upload.",
+                         esp_err_to_name(sensor_err), sensor_err);
                 free(request_id);
                 vTaskDelay(pdMS_TO_TICKS(POLL_INTERVAL_MS));
                 continue;
             }
-            free(action);
-            action = NULL;
+            ESP_LOGI(TAG, "RAW I2C fallback SUCCESS, got real data");
+        }
 
-            /* ---- Sensor data collection (original logic) ---- */
-            qma6100p_acce_value_t acce = {0};
-            esp_err_t sensor_err = ESP_FAIL;
+        if (consecutive_sensor_fail >= 5) {
+            ESP_LOGW(TAG, "=== Sensor recovery: soft reset + re-init ===");
+            qma6100p_soft_reset(sensor);
+            vTaskDelay(pdMS_TO_TICKS(50));
+            qma6100p_config(sensor, ACCE_FS_2G);
+            qma6100p_wake_up(sensor);
+            vTaskDelay(pdMS_TO_TICKS(100));
+            consecutive_sensor_fail = 0;
+            ESP_LOGI(TAG, "Sensor recovery done");
+        }
 
-            esp_err_t wake_r = qma6100p_wake_up(sensor);
-            if (wake_r != ESP_OK) {
-                ESP_LOGW(TAG, "Pre-read wake_up failed: %s (err=0x%x)", esp_err_to_name(wake_r), wake_r);
-            }
-            vTaskDelay(pdMS_TO_TICKS(20));
+        char tbuf[32];
+        time_t now = time(NULL);
+        struct tm tm_info;
+        localtime_r(&now, &tm_info);
+        strftime(tbuf, sizeof(tbuf), "%Y-%m-%d %H:%M:%S", &tm_info);
 
-            for (int retry = 0; retry < 3; retry++) {
-                sensor_err = qma6100p_get_acce(sensor, &acce);
-                if (sensor_err == ESP_OK) {
-                    consecutive_sensor_fail = 0;
-                    break;
-                }
-                ESP_LOGW(TAG, "Sensor read attempt %d/3 failed: %s (err=0x%x)",
-                         retry + 1, esp_err_to_name(sensor_err), sensor_err);
-                if (retry < 2) {
-                    vTaskDelay(pdMS_TO_TICKS(10));
-                }
-            }
+        printf("REQUEST [%s]: ax=%.2f ay=%.2f az=%.2f @ %s\n",
+               request_id ? request_id : "LOCAL", acce.acce_x, acce.acce_y, acce.acce_z, tbuf);
 
-            if (sensor_err != ESP_OK) {
-                sensor_fail++;
-                consecutive_sensor_fail++;
-                ESP_LOGW(TAG, "Driver read exhausted (%lu fails, %lu consec), trying raw I2C fallback...",
-                         sensor_fail, consecutive_sensor_fail);
-                sensor_err = qma6100p_raw_read_fallback(sensor, &acce);
-                if (sensor_err != ESP_OK) {
-                    ESP_LOGE(TAG, "RAW I2C fallback also failed: %s (err=0x%x). "
-                             "No data available, skipping upload.",
-                             esp_err_to_name(sensor_err), sensor_err);
-                    free(request_id);
-                    vTaskDelay(pdMS_TO_TICKS(POLL_INTERVAL_MS));
-                    continue;
-                }
-                ESP_LOGI(TAG, "RAW I2C fallback SUCCESS, got real data");
-            }
+        /* ---- Build cache record ---- */
+        cached_record_t rec;
+        memset(&rec, 0, sizeof(rec));
+        rec.ax = acce.acce_x; rec.ay = acce.acce_y; rec.az = acce.acce_z;
+        strncpy(rec.time_str, tbuf, sizeof(rec.time_str) - 1);
+        if (request_id && request_id[0] != '\0') {
+            snprintf(rec.request_id, sizeof(rec.request_id), "%s", request_id);
+        } else {
+            snprintf(rec.request_id, sizeof(rec.request_id), "OFFLINE_%ld", get_valid_timestamp());
+        }
+        rec.dev_label = device_infer_accel(acce.acce_x, acce.acce_y, acce.acce_z);
+        rec.original_ts = get_valid_timestamp();
+        rec.retransmit_ts = 0;
 
-            if (consecutive_sensor_fail >= 5) {
-                ESP_LOGW(TAG, "=== Sensor recovery: soft reset + re-init ===");
-                qma6100p_soft_reset(sensor);
-                vTaskDelay(pdMS_TO_TICKS(50));
-                qma6100p_config(sensor, ACCE_FS_2G);
-                qma6100p_wake_up(sensor);
-                vTaskDelay(pdMS_TO_TICKS(100));
-                consecutive_sensor_fail = 0;
-                ESP_LOGI(TAG, "Sensor recovery done");
-            }
-
-            char tbuf[32];
-            time_t now = time(NULL);
-            struct tm tm_info;
-            localtime_r(&now, &tm_info);
-            strftime(tbuf, sizeof(tbuf), "%Y-%m-%d %H:%M:%S", &tm_info);
-
-            printf("REQUEST [%s]: ax=%.2f ay=%.2f az=%.2f @ %s\n",
-                   request_id, acce.acce_x, acce.acce_y, acce.acce_z, tbuf);
-
-            esp_err_t http_err = http_upload(acce.acce_x, acce.acce_y, acce.acce_z, tbuf, request_id);
+        if (wifi_ok && server_ok) {
+            esp_err_t http_err = http_upload(rec.ax, rec.ay, rec.az, rec.time_str,
+                                              rec.request_id, rec.original_ts, rec.retransmit_ts);
             esp_task_wdt_reset();
-            free(request_id);
-
             if (http_err == ESP_OK) {
                 upload_ok++;
             } else {
                 upload_fail++;
-                ESP_LOGW(TAG, "Upload fail #%lu", upload_fail);
+                cache_enqueue(&rec);
             }
+        } else {
+            cache_enqueue(&rec);
         }
+
+        free(request_id);
 
         TickType_t now_ticks = xTaskGetTickCount();
         if ((now_ticks - last_stats) >= pdMS_TO_TICKS(30000)) {
-            ESP_LOGI(TAG, "STATS: ok=%lu fail=%lu sensor_err=%lu polls=%lu",
-                     upload_ok, upload_fail, sensor_fail, poll_cycles);
+            ESP_LOGI(TAG, "STATS: ok=%lu fail=%lu sensor_err=%lu polls=%lu cache=%d",
+                     upload_ok, upload_fail, sensor_fail, poll_cycles, cache_count());
             last_stats = now_ticks;
         }
 
@@ -1087,6 +1263,9 @@ void app_main(void)
 
     /* Create message queue (depth 5) */
     trigger_queue = xQueueCreate(5, sizeof(trigger_msg_t));
+
+    /* Week14: Create cache mutex for ring buffer */
+    g_cache_mutex = xSemaphoreCreateMutex();
 
     /* Create Week3 tasks with return-value checks */
     {

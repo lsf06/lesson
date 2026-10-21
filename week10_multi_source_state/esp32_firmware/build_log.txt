@@ -1,0 +1,29 @@
+Executing action: all (aliases: build)
+Running cmake in directory 'D:\lesson\xiaolin\lesson-main (1)\lesson-main\week10_multi_source_state\esp32_firmware\build'
+Executing "cmake -G Ninja -DPYTHON_DEPS_CHECKED=1 -DPYTHON=D:\lesson\Download\esp-idf\Espressif\python_env\idf5.4_py3.10_env\Scripts\python.exe -DESP_PLATFORM=1 -DCCACHE_ENABLE=1 'D:\lesson\xiaolin\lesson-main (1)\lesson-main\week10_multi_source_state\esp32_firmware'"...
+-- IDF_TARGET is not set, guessed 'esp32s3' from sdkconfig 'D:/lesson/xiaolin/lesson-main (1)/lesson-main/week10_multi_source_state/esp32_firmware/sdkconfig'
+-- Found Git: D:/lesson/Download/git/Git/cmd/git.exe (found version "2.55.0.windows.1")
+-- ccache will be used for faster recompilation
+-- The C compiler identification is GNU 14.2.0
+-- The CXX compiler identification is GNU 14.2.0
+-- The ASM compiler identification is GNU
+-- Found assembler: D:/lesson/Download/esp-idf/Espressif/tools/xtensa-esp-elf/esp-14.2.0_20260121/xtensa-esp-elf/bin/xtensa-esp32s3-elf-gcc.exe
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: D:/lesson/Download/esp-idf/Espressif/tools/xtensa-esp-elf/esp-14.2.0_20260121/xtensa-esp-elf/bin/xtensa-esp32s3-elf-gcc.exe - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: D:/lesson/Download/esp-idf/Espressif/tools/xtensa-esp-elf/esp-14.2.0_20260121/xtensa-esp-elf/bin/xtensa-esp32s3-elf-g++.exe - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Building ESP-IDF components for target esp32s3
+NOTICE: Skipping optional dependency: espressif/esp_h264
+NOTICE: Skipping optional dependency: espressif/esp_ipa
+NOTICE: Skipping optional dependency: espressif/usb
+NOTICE: Skipping optional dependency: espressif/freetype
+NOTICE: Skipping optional dependency: espressif/libjpeg-turbo
+NOTICE: Skipping optional dependency: espressif/libpng
+NOTICE: Skipping optional dependency: espressif/lz4
+^C

@@ -1172,3 +1172,147 @@ week12_feedback_preferences/
 - 偏好写入是幂等的（`INSERT OR REPLACE`），重复写入不会产生脏数据
 - 过期偏好在前端不展示状态位，但 `check_preference` 会自动过滤已过期的记录
 - `config_version` 用于前端增量同步判断，避免不必要的全量刷新
+
+---
+
+## 第13周：边缘推理能力注册与云+本地回退
+
+> **提交日期**: 2026-10-13
+> **对应目录**: `week13_14_edge_inference/`
+
+### 1. 功能概述
+
+将推理能力从纯云端扩展到"云端优先 + 近端边缘回退"的双层架构，新增能力注册表、离线检测横幅和本地规则推理引擎。
+
+```
+┌──────────────────────────────┐
+│   用户请求推理（页面按钮）      │
+└────────────┬─────────────────┘
+             ▼
+    ┌─────────────────┐
+    │  /api/infer      │  统一推理入口
+    └────────┬────────┘
+             │
+    ┌────────▼────────┐    ┌──────────────────┐
+    │  云端 DeepSeek   │───▶│ source=cloud      │
+    │  (优先尝试)       │    │ 云端推理标签       │
+    └────────┬────────┘    └──────────────────┘
+             │ 失败/未配置
+    ┌────────▼────────┐    ┌──────────────────┐
+    │  /api/local_infer│───▶│ source=local_near_edge │
+    │  本地规则引擎     │    │ 近端边缘验证标签    │
+    └─────────────────┘    └──────────────────┘
+```
+
+### 2. 新增 API 路由
+
+| 路由 | 方法 | 说明 |
+|------|------|------|
+| `/api/capabilities` | GET | 返回能力注册表 + 运行位置清单 |
+| `/api/local_infer` | POST | 本地规则推理（读取 `source_states` 表） |
+| `/api/infer` | POST | 云优先 + 本地回退统一入口 |
+| `/api/offline_status` | GET | 当前离线状态查询 |
+
+### 3. 测试验证
+
+| 场景 | 预期 | 结果 |
+|------|------|------|
+| 断开外网后本地推理仍运行 | `source=local_near_edge`，显示「近端边缘验证」 | ✅ |
+| 联网增强可用提示 | 云端可用→`source=cloud`；不可用→回退本地 | ✅ |
+| 仅电脑推理标注 | 橙色标签「目标设备验收待补」，不冒充 ESP32 | ✅ |
+| 能力表正确 | 两表：本地/联网能力表 + 运行位置清单 | ✅ |
+| 离线横幅自动切换 | 断网→橙色横幅；联网→自动消失（15s轮询） | ✅ |
+
+### 4. 代码变更
+
+- **server/app.py**: 新增 `check_offline_status()`、capabilities 字典、4 个 API 路由（~130行）
+- **templates/index.html**: 新增离线横幅 CSS、🔌 运行位置与能力 Tab、边缘推理按钮、`runEdgeInference()`、`loadCapabilities()`、`checkOfflineStatus()`
+- **esp32_firmware/main.c**: 零改动
+
+### 5. 启动方法
+
+```bash
+cd server
+pip install flask opencv-python-headless pillow openai torch torchvision numpy python-dotenv
+python app.py
+```
+
+浏览器打开 `http://10.1.41.43:5000`。
+
+---
+
+## 第14周：离线缓存与断网续传 + 看门狗加固
+
+> **对应目录**: `week13_14_edge_inference/`（合并于第13周目录）
+
+### 1. 功能概述
+
+实现 ESP32 离线场景下的数据缓存与网络恢复后的自动续传，同时加固看门狗定时器防止 HTTP 长耗时触发复位。
+
+```
+┌──────────────────────┐         Wi-Fi 可用时        ┌──────────────────────┐
+│   ESP32-S3-EYE       │ ──── 实时上传 (live) ──────▶│   Flask Server       │
+│   传感器采集          │                              │   delivery_status     │
+│                      │         Wi-Fi 断线时         │   = 'live'           │
+│   ┌────────────────┐ │                              │                      │
+│   │ 环形缓冲区(20条)│ │                              │   Wi-Fi 恢复后         │
+│   │ 缓存+时间戳     │ │ ──── 批量续传 (recovered) ──▶│   delivery_status     │
+│   └────────────────┘ │                              │   = 'recovered'       │
+└──────────────────────┘                              └──────────────────────┘
+```
+
+### 2. ESP32 端实现
+
+| 组件 | 说明 |
+|------|------|
+| **环形缓冲区** | `CACHE_QUEUE_SIZE=20`，`cache_record_t` 结构体存储 ax/ay/az/device_time |
+| **缓存互斥锁** | `g_cache_mutex` FreeRTOS 信号量保护并发访问 |
+| **自动续传** | `retransmit_cached_records()` → WiFi 恢复后逐条重传缓存数据 |
+| **时间戳回退** | `get_valid_timestamp()` → SNTP 未同步时回退到编译时间（`__DATE__`） |
+| **看门狗加固** | `esp_task_wdt_reset()` 在 `http_upload()` 和 `capture_and_upload()` 中调用，防止长 HTTP 耗时触发 WDT |
+
+### 3. 服务器端实现
+
+| 功能 | 说明 |
+|------|------|
+| **delivery_status** | `accelerometer` 表新增列，`'live'` 正常 / `'recovered'` 续传 |
+| **original_ts** | 记录数据原始采集时间戳 |
+| **retransmit_ts** | 记录续传发生时间 |
+| **transmission_status** | `source_states` 表新增列，前端显示延迟徽章 |
+
+### 4. 数据流标记
+
+```
+            正常路径: delivery_status='live', transmission_status='live'
+离线缓存→恢复上传: delivery_status='recovered', transmission_status='recovered'
+```
+
+前端根据 `transmission_status === 'recovered'` 显示 🟡「离线恢复」徽章。
+
+### 5. 验证清单
+
+- [x] 环形缓冲区缓存最多 20 条离线数据
+- [x] WiFi 断线时数据写入缓冲区不丢失
+- [x] WiFi 恢复后自动批量续传（标记 `recovered`）
+- [x] 前端显示「离线恢复」延迟徽章
+- [x] `esp_task_wdt_reset()` 防止 HTTP 超时触发看门狗复位
+
+---
+
+### 文件清单
+
+```
+week13_14_edge_inference/
+├── esp32_firmware/
+│   ├── main/
+│   │   └── main.c              ← 环形缓冲区 + 离线续传 + WDT 加固
+│   └── CMakeLists.txt
+├── server/
+│   ├── app.py                  ← capability/infer + delivery_status + 续传标记
+│   ├── templates/
+│   │   └── index.html          ← 边缘推理 UI + 运行位置 Tab + 离线横幅
+│   ├── static/
+│   │   └── captured/
+│   └── requirements.txt
+└── README_SUBMIT.md
+```
