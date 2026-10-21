@@ -1316,3 +1316,12 @@ week13_14_edge_inference/
 │   └── requirements.txt
 └── README_SUBMIT.md
 ```
+
+---
+
+## 第15周：处理重复、迟到与过期任务
+* **幂等防重（防重复上传）**：服务端 `/api/upload` 使用 `BEGIN IMMEDIATE` 事务锁，对同一 `request_id` 的并发上传进行串行化校验，100次并发仅落库1条。
+* **过期拦截（防旧指令复活）**：服务端下发任务时带上 `expire_at`。设备端对比本地 SNTP 时间，若判定过期，则不执行采集，直接回传 `EXPIRED` 回执，彻底杜绝过时指令执行。
+* **设备端防重放**：设备端 RAM 中记录 `last_executed_request_id`，收到相同 ID 时直接跳过，避免浪费算力和传感器寿命。
+
+---

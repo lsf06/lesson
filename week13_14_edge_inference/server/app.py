@@ -91,6 +91,11 @@ def init_db():
         c.execute("ALTER TABLE collection_requests ADD COLUMN action TEXT DEFAULT 'data'")
     except Exception:
         pass  # column already exists
+    # Week15: add expire_at column (epoch seconds) for expired-task handling
+    try:
+        c.execute("ALTER TABLE collection_requests ADD COLUMN expire_at INTEGER")
+    except Exception:
+        pass  # column already exists
     c.execute('''CREATE TABLE IF NOT EXISTS trigger_events (
                     event_id TEXT PRIMARY KEY,
                     device_id TEXT NOT NULL,
@@ -284,7 +289,8 @@ def update_source_state(source_name, status, latest_value, observation_time=None
         log.error('update_source_state(%s): %s', source_name, e)
 
 # ─── Helpers ────────────────────────────────────────────────
-REQUEST_TIMEOUT_S = 5
+REQUEST_TIMEOUT_S = 5     # 投递窗口：PENDING/RECEIVED 超过 5s 不再投递
+REQUEST_EXPIRE_S = 60     # Week15: 任务执行有效期（写入 expire_at）
 
 def _check_timeouts():
     """Mark any PENDING/RECEIVED requests older than 5s as TIMEOUT."""
@@ -339,9 +345,11 @@ def upload():
     ay = data.get('ay', 0)
     az = data.get('az', 0)
     device_time = data.get('device_time', '')
-    request_id = data.get('request_id', None)
+    request_id = data.get('request_id', None) or None   # 空字符串统一成 None
     original_ts = data.get('original_ts', 0)
     retransmit_ts = data.get('retransmit_ts', 0)
+    client_status = str(data.get('status', '') or '').upper()
+    is_expired_receipt = (client_status == 'EXPIRED')
     server_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
     print(f"[DBG-UPLOAD] device_time={repr(device_time)} server_time={server_time} orig_ts={original_ts} retrans_ts={retransmit_ts}")
 
@@ -358,8 +366,48 @@ def upload():
         else:
             delivery_status = 'recovered'
 
+    # ── Week15: 幂等 / 过期 / 取消（同一事务内判定，抗并发） ──
     conn = get_db()
+    conn.isolation_level = None          # 显式事务控制
     c = conn.cursor()
+    c.execute('BEGIN IMMEDIATE')         # 串行化同一 request_id 的并发上传
+
+    late_response = False
+    existing_status = None
+    if request_id:
+        existing = c.execute(
+            'SELECT status FROM collection_requests WHERE request_id=?',
+            (request_id,)
+        ).fetchone()
+        if existing:
+            existing_status = existing['status']
+
+        # ① 已 COMPLETED → 幂等丢弃，直接 200
+        if existing_status == 'COMPLETED':
+            conn.rollback()
+            conn.close()
+            log.info('Duplicate upload ignored: request_id=%s already COMPLETED', request_id)
+            return jsonify({'status': 'ok', 'duplicate': True, 'server_time': server_time})
+
+        # ② 设备主动上报“任务已过期”：只改状态，不写加速度
+        if is_expired_receipt:
+            if existing:
+                c.execute(
+                    '''UPDATE collection_requests SET status='EXPIRED', completed_at=?
+                       WHERE request_id=? AND status IN ('PENDING','RECEIVED','TIMEOUT')''',
+                    (server_time, request_id)
+                )
+            conn.commit()
+            conn.close()
+            log.info('Task expired receipt recorded: request_id=%s (was=%s)',
+                     request_id, existing_status or 'UNKNOWN')
+            return jsonify({'status': 'ok', 'expired': True, 'server_time': server_time})
+
+        # ③ 已取消/已过期 → 原始数据可留，但推理结果不得覆盖最新状态
+        if existing_status in ('CANCELLED', 'EXPIRED'):
+            late_response = True
+            log.info('Late response ignored: request_id=%s status=%s (raw only)',
+                     request_id, existing_status)
 
     # Always insert into accelerometer (Week14: include original_ts, retransmit_ts, delivery_status)
     try:
@@ -376,12 +424,12 @@ def upload():
             (device_id, ax, ay, az, device_time, server_time)
         )
 
-    # If request_id present, mark the collection request as COMPLETED
-    if request_id:
+    # If request_id present, mark the collection request as COMPLETED (skip if CANCELLED)
+    if request_id and not late_response:
         c.execute(
             '''UPDATE collection_requests SET status='COMPLETED', completed_at=?,
                ax=?, ay=?, az=?, device_time=?
-               WHERE request_id=? AND status IN ('PENDING','RECEIVED')''',
+               WHERE request_id=? AND status IN ('PENDING','RECEIVED','TIMEOUT')''',
             (server_time, ax, ay, az, device_time, request_id)
         )
         if c.rowcount > 0:
@@ -400,12 +448,15 @@ def upload():
     update_source_state('network', 'success', 'WiFi connected', receive_time=server_time,
                        transmission_status=delivery_status)
 
-    # 第13周：设备端加速度规则推理
+    # 第13周：设备端加速度规则推理（CANCELLED/EXPIRED 的迟到数据只写原始数据，不更新推理状态）
     device_inference = data.get('device_inference', None)
-    if device_inference:
+    if device_inference and not late_response:
         update_source_state('device_inference', 'success', json.dumps(device_inference),
                            observation_time=device_inference.get('computed_at', server_time),
                            receive_time=server_time, transmission_status=delivery_status)
+    elif device_inference and late_response:
+        log.info('Upload: request_id=%s is %s, skipping device_inference state update',
+                 request_id, existing_status)
 
     return jsonify({'status': 'ok', 'server_time': server_time})
 
@@ -480,23 +531,25 @@ def request_collection():
     device_id = data.get('device_id', 'group01_esp32s3eye')
     request_id = _gen_request_id()
     now_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+    expire_epoch = int(time.time()) + REQUEST_EXPIRE_S
 
     conn = get_db()
     c = conn.cursor()
     c.execute(
-        'INSERT INTO collection_requests (request_id, device_id, status, created_at) '
-        'VALUES (?, ?, ?, ?)',
-        (request_id, device_id, 'PENDING', now_str)
+        'INSERT INTO collection_requests (request_id, device_id, status, created_at, expire_at) '
+        'VALUES (?, ?, ?, ?, ?)',
+        (request_id, device_id, 'PENDING', now_str, expire_epoch)
     )
     conn.commit()
     conn.close()
 
-    log.info('Request created: id=%s device=%s status=PENDING', request_id, device_id)
+    log.info('Request created: id=%s device=%s status=PENDING expire_at=%d', request_id, device_id, expire_epoch)
     return jsonify({
         'request_id': request_id,
         'device_id': device_id,
         'status': 'PENDING',
-        'created_at': now_str
+        'created_at': now_str,
+        'expire_at': expire_epoch
     })
 
 @app.route('/api/request_status/<request_id>', methods=['GET'])
@@ -537,7 +590,7 @@ def pending_request():
     conn = get_db()
     c = conn.cursor()
     row = c.execute(
-        '''SELECT request_id, device_id, created_at, action FROM collection_requests
+        '''SELECT request_id, device_id, created_at, expire_at, action FROM collection_requests
            WHERE device_id=? AND status='PENDING'
            ORDER BY created_at ASC LIMIT 1''',
         (device_id,)
@@ -548,6 +601,7 @@ def pending_request():
         return jsonify({'has_request': False})
 
     request_id = row['request_id']
+    expire_at_val = row['expire_at'] if row['expire_at'] else 0
     c.execute(
         'UPDATE collection_requests SET status=? WHERE request_id=?',
         ('RECEIVED', request_id)
@@ -561,11 +615,12 @@ def pending_request():
     except (KeyError, IndexError):
         act_val = 'data'
 
-    log.info('Pending request delivered: id=%s device=%s action=%s', request_id, device_id, act_val)
+    log.info('Pending request delivered: id=%s device=%s action=%s expire_at=%s', request_id, device_id, act_val, expire_at_val)
     return jsonify({
         'has_request': True,
         'request_id': request_id,
-        'action': act_val
+        'action': act_val,
+        'expire_at': expire_at_val
     })
 
 # ─── Week 3: Trigger / Cancel Endpoints ─────────────────
@@ -876,16 +931,18 @@ def nlp_query():
     if intent == 'tool_request_collection':
         request_id = _gen_request_id()
         now_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+        expire_epoch = int(time.time()) + REQUEST_EXPIRE_S
         conn = get_db()
         c = conn.cursor()
         c.execute(
-            'INSERT INTO collection_requests (request_id, device_id, status, created_at) '
-            'VALUES (?,?,?,?)',
-            (request_id, device_id, 'PENDING', now_str)
+            'INSERT INTO collection_requests (request_id, device_id, status, created_at, expire_at) '
+            'VALUES (?,?,?,?,?)',
+            (request_id, device_id, 'PENDING', now_str, expire_epoch)
         )
         conn.commit()
         conn.close()
-        log.info('NLP collection request: id=%s device=%s', request_id, device_id)
+        log.info('NLP collection request: id=%s device=%s expire_at=%d',
+                 request_id, device_id, expire_epoch)
 
         # ── 延迟注入（测试中途取消） ──
         if ENABLE_SLOW_INJECTION:
@@ -941,7 +998,8 @@ def _cancel_collection(request_id, device_id, task_request_id):
     try:
         conn2 = get_db()
         conn2.execute(
-            "UPDATE collection_requests SET status='CANCELLED' WHERE request_id=?",
+            "UPDATE collection_requests SET status='CANCELLED' "
+            "WHERE request_id=? AND status IN ('PENDING','RECEIVED')",
             (request_id,)
         )
         conn2.commit()
@@ -1110,11 +1168,12 @@ def api_capture_image():
     request_id = _gen_request_id()
     device_id = 'group01_esp32s3eye'
     now_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+    expire_epoch = int(time.time()) + REQUEST_EXPIRE_S
     try:
         conn = get_db()
         conn.execute(
-            'INSERT INTO collection_requests (request_id, device_id, status, created_at, action) VALUES (?,?,?,?,?)',
-            (request_id, device_id, 'PENDING', now_str, 'capture')
+            'INSERT INTO collection_requests (request_id, device_id, status, created_at, action, expire_at) VALUES (?,?,?,?,?,?)',
+            (request_id, device_id, 'PENDING', now_str, 'capture', expire_epoch)
         )
         conn.commit()
         conn.close()

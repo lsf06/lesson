@@ -105,6 +105,16 @@ static volatile int g_cache_head  = 0;   /* read pointer */
 static SemaphoreHandle_t g_cache_mutex = NULL;
 static volatile bool g_wifi_just_reconnected = false;
 
+/* ====== Week15: 已执行 request_id 去重（RAM，重启失效） ====== */
+static char last_executed_request_id[64] = {0};
+
+static void record_executed_request_id(const char *request_id)
+{
+    if (!request_id || request_id[0] == '\0') return;
+    strncpy(last_executed_request_id, request_id, sizeof(last_executed_request_id) - 1);
+    last_executed_request_id[sizeof(last_executed_request_id) - 1] = '\0';
+}
+
 /* Messages for button_task → trigger_http_task queue */
 typedef enum {
     TRIG_MSG_TRIGGER = 0,   /* button pressed 锟?send /api/trigger */
@@ -236,9 +246,10 @@ static void sntp_init_time(void)
 }
 
 /* ----------------------- HTTP Poll Request ----------------------- */
-static char *http_poll_request(char **action_out, bool *server_ok)
+static char *http_poll_request(char **action_out, bool *server_ok, long *expire_at_out)
 {
     if (server_ok) *server_ok = false;    /* default: not reachable */
+    if (expire_at_out) *expire_at_out = 0;
 
     esp_http_client_config_t config = {
         .url = SERVER_POLL_URL,
@@ -331,6 +342,14 @@ static char *http_poll_request(char **action_out, bool *server_ok)
             *action_out = strdup(act_json->valuestring);
         } else {
             *action_out = NULL;
+        }
+    }
+
+    /* ====== Week15: 解析 expire_at（epoch 秒，0 表示服务端未设置） ====== */
+    if (expire_at_out) {
+        cJSON *exp_json = cJSON_GetObjectItem(root, "expire_at");
+        if (cJSON_IsNumber(exp_json)) {
+            *expire_at_out = (long)exp_json->valuedouble;
         }
     }
 
@@ -450,6 +469,59 @@ static esp_err_t http_upload(float ax, float ay, float az, const char *time_str,
         }
     } else {
         ESP_LOGE(TAG, "UPLOAD FAILED, will cache (err=0x%x)", err);
+    }
+
+    esp_http_client_cleanup(client);
+    return err;
+}
+
+/* ====== Week15: 上报“任务已过期”，不携带传感器数据 ====== */
+static esp_err_t http_upload_expired(const char *request_id)
+{
+    if (!request_id || request_id[0] == '\0') return ESP_ERR_INVALID_ARG;
+
+    char tbuf[32];
+    time_t now = time(NULL);
+    struct tm tm_info;
+    localtime_r(&now, &tm_info);
+    strftime(tbuf, sizeof(tbuf), "%Y-%m-%d %H:%M:%S", &tm_info);
+
+    char payload[256];
+    int len = snprintf(payload, sizeof(payload),
+                       "{\"device_id\":\"%s\",\"request_id\":\"%s\","
+                       "\"status\":\"EXPIRED\",\"device_time\":\"%s\"}",
+                       DEVICE_ID, request_id, tbuf);
+    if (len < 0 || len >= sizeof(payload)) {
+        ESP_LOGE(TAG, "EXPIRED payload overflow!");
+        return ESP_ERR_NO_MEM;
+    }
+
+    esp_http_client_config_t config = {
+        .url = SERVER_URL,
+        .method = HTTP_METHOD_POST,
+        .timeout_ms = HTTP_TIMEOUT_MS,
+        .keep_alive_enable = false,
+        .disable_auto_redirect = true,
+    };
+    esp_http_client_handle_t client = esp_http_client_init(&config);
+    if (!client) {
+        ESP_LOGE(TAG, "EXPIRED: HTTP client init failed");
+        return ESP_FAIL;
+    }
+
+    esp_http_client_set_header(client, "Content-Type", "application/json");
+    esp_http_client_set_post_field(client, payload, strlen(payload));
+
+    esp_err_t err = esp_http_client_perform(client);
+    if (err == ESP_OK) {
+        int status = esp_http_client_get_status_code(client);
+        if (status == 200) {
+            ESP_LOGI(TAG, "EXPIRED receipt sent (request_id=%s)", request_id);
+        } else {
+            ESP_LOGW(TAG, "EXPIRED receipt HTTP %d", status);
+        }
+    } else {
+        ESP_LOGE(TAG, "EXPIRED receipt FAILED (err=0x%x)", err);
     }
 
     esp_http_client_cleanup(client);
@@ -971,6 +1043,7 @@ static void poll_service(void *pvParameters)
         char *request_id = NULL;
         bool server_ok = false;
         bool should_collect = false;
+        long expire_at = 0;                       /* Week15 */
 
         if (!wifi_ok) {
             /* WiFi physically down → autonomous collection */
@@ -979,7 +1052,7 @@ static void poll_service(void *pvParameters)
         } else {
             /* WiFi up → poll server */
             esp_task_wdt_reset();  /* Reset WDT before potential 3s HTTP timeout */
-            request_id = http_poll_request(&action, &server_ok);
+            request_id = http_poll_request(&action, &server_ok, &expire_at);
             poll_cycles++;
 
             if (!server_ok) {
@@ -1010,10 +1083,41 @@ static void poll_service(void *pvParameters)
             continue;
         }
 
+        /* ====== Week15: 同一 request_id 只执行一次 ====== */
+        if (request_id && request_id[0] != '\0' &&
+            strcmp(request_id, last_executed_request_id) == 0) {
+            ESP_LOGW(TAG, "Duplicate request_id skipped: %s", request_id);
+            free(action);
+            free(request_id);
+            vTaskDelay(pdMS_TO_TICKS(POLL_INTERVAL_MS));
+            continue;
+        }
+
+        /* ====== Week15: 过期任务不执行，只回 EXPIRED 收据 ====== */
+        if (request_id && expire_at > 0) {
+            long now_epoch = (long)time(NULL);
+            if (now_epoch < 1704067200L) {        /* SNTP 未同步，无法比较绝对时间 */
+                ESP_LOGW(TAG, "Expiry check skipped: system time not synced (now=%ld)", now_epoch);
+            } else if (now_epoch > expire_at) {
+                ESP_LOGW(TAG, "Task expired, skipped: request_id=%s now=%ld expire_at=%ld",
+                         request_id, now_epoch, expire_at);
+                record_executed_request_id(request_id);
+                http_upload_expired(request_id);
+                esp_task_wdt_reset();
+                free(action);
+                free(request_id);
+                vTaskDelay(pdMS_TO_TICKS(POLL_INTERVAL_MS));
+                continue;
+            }
+        }
+
         /* ====== Week7: Check if action is "capture" ====== */
         if (action && strcmp(action, "capture") == 0) {
             ESP_LOGI(TAG, "Action = capture, taking photo...");
-            capture_and_upload();
+            esp_err_t cap_err = capture_and_upload();
+            if (cap_err == ESP_OK) {
+                record_executed_request_id(request_id);
+            }
             free(action);
             free(request_id);
             vTaskDelay(pdMS_TO_TICKS(POLL_INTERVAL_MS));
@@ -1110,6 +1214,7 @@ static void poll_service(void *pvParameters)
             cache_enqueue(&rec);
         }
 
+        record_executed_request_id(request_id);
         free(request_id);
 
         TickType_t now_ticks = xTaskGetTickCount();
