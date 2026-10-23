@@ -35,8 +35,8 @@
 /* ====== CONFIGURATION ====== */
 #define WIFI_SSID           "431"
 #define WIFI_PASSWORD       "88888888"
-#define SERVER_URL          "http://10.1.41.199:5000/api/upload"
-#define SERVER_POLL_URL     "http://10.1.41.199:5000/api/pending_request?device_id=group01_esp32s3eye"
+#define SERVER_URL          "http://10.1.41.43:5000/api/upload"
+#define SERVER_POLL_URL     "http://10.1.41.43:5000/api/pending_request?device_id=group01_esp32s3eye"
 #define DEVICE_ID           "group01_esp32s3eye"
 
 #define POLL_INTERVAL_MS    1000    /* poll server every 1 s for pending requests */
@@ -45,8 +45,8 @@
 /* ====== Week3: Button + LCD Status + ACK ====== */
 #define BUTTON_GPIO         GPIO_NUM_0
 #define DEBOUNCE_MS         20
-#define SERVER_TRIGGER_URL  "http://10.1.41.199:5000/api/trigger"
-#define SERVER_CANCEL_URL   "http://10.1.41.199:5000/api/cancel"
+#define SERVER_TRIGGER_URL  "http://10.1.41.43:5000/api/trigger"
+#define SERVER_CANCEL_URL   "http://10.1.41.43:5000/api/cancel"
 #define TRIGGER_TIMEOUT_MS  5000
 
 /* ====== Week7: OV2640 Camera ====== */
@@ -66,7 +66,7 @@
 #define CAMERA_PIN_VSYNC     6
 #define CAMERA_PIN_HREF      7
 #define CAMERA_PIN_PCLK      13
-#define CAPTURE_SERVER_URL   "http://10.1.41.199:5000/api/capture_image"
+#define CAPTURE_SERVER_URL   "http://10.1.41.43:5000/api/capture_image"
 
 static const char *TAG = "MAIN";
 
