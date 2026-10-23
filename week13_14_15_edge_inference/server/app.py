@@ -1959,9 +1959,9 @@ def api_offline_status():
     banner = ""
     if OFFLINE_MODE:
         if OFFLINE_REASON in ("no_api_key", ""):
-            banner = "未配置在线模型：本地基础反馈仍可用"
+            banner = "云端大模型不可用：已切换至本地安全推理"
         else:
-            banner = "外网不可用：本地基础反馈仍可用"
+            banner = "网络离线：云端大模型不可用，已切换至本地安全推理"
     return jsonify({"offline_mode": OFFLINE_MODE, "cloud_available": not OFFLINE_MODE, "banner_text": banner})
 
 

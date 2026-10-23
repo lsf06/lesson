@@ -289,9 +289,9 @@
             <button class="tab-btn" data-tab="context" onclick="switchTab('context')">🧠 交互上下文</button>
             <button class="tab-btn" data-tab="capabilities" onclick="switchTab('capabilities')">🔌 运行位置与能力</button>
         </div>
-        <!-- 第13周：离线状态横幅 -->
+        <!-- 第13周：离线状态横幅 / 第17周：按第16周测试反馈改写文案（去掉"不可用/故障"语义） -->
         <div class="offline-banner" id="offline-banner">
-            ⚠️ 外网不可用：<span class="hint-text">本地基础反馈仍可用</span>
+            ⚠️ 网络离线：<span class="hint-text">云端大模型不可用，已切换至本地安全推理</span>
         </div>
         <div class="tab-content">
             <div class="tab-page active" id="tab-dashboard">
@@ -573,12 +573,51 @@ function flashCard(id){var el=document.getElementById(id);el.classList.remove('f
 
 /* ─── Week 2: Request Collection ─── */
 var reqPollTimer=null,currentRequestId=null,reqStartTime=null;
+/* ─── Week17: 采集按钮倒计时（修复第16周"等待焦虑→连点"问题） ─── */
+var reqCountdownTimer=null,reqCountdownLeft=0;
+var REQ_COUNTDOWN_S=3;
+var REQ_BTN_IDLE_TEXT='🔬 采集一次最新数据';
+function stopReqCountdown(){
+    if(reqCountdownTimer){clearInterval(reqCountdownTimer);reqCountdownTimer=null;}
+}
+function resetReqBtn(){
+    stopReqCountdown();
+    var btn=document.getElementById('req-btn');
+    if(!btn)return;
+    btn.disabled=false;
+    btn.textContent=REQ_BTN_IDLE_TEXT;
+}
+function startReqCountdown(btn){
+    stopReqCountdown();
+    reqCountdownLeft=REQ_COUNTDOWN_S;
+    btn.textContent='⏳ 采集中('+reqCountdownLeft+'s)...';
+    reqCountdownTimer=setInterval(function(){
+        reqCountdownLeft--;
+        if(reqCountdownLeft>0){
+            btn.textContent='⏳ 采集中('+reqCountdownLeft+'s)...';
+        }else{
+            // 3s 内没拿到 request_id：结束倒计时并恢复按钮，允许用户重试
+            // （服务端按 request_id 幂等，重复提交不会重复落库）
+            stopReqCountdown();
+            if(!currentRequestId){resetReqBtn();}
+        }
+    },1000);
+}
 function requestCollection(){
     var btn=document.getElementById('req-btn');
-    btn.disabled=true;btn.textContent='⏳ 提交中...';
+    // Week17: 禁用期间直接忽略重复点击，从入口挡住"连点"
+    if(btn.disabled)return;
+    btn.disabled=true;
+    startReqCountdown(btn);
     fetch('/api/request_collection',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({device_id:'group01_esp32s3eye'})})
     .then(function(r){return r.json();})
     .then(function(d){
+        // Week17: 网络正常返回 → 提前结束倒计时，交给原有 request_id 状态机
+        stopReqCountdown();
+        if(!d||!d.request_id){
+            console.error('Create request error: no request_id',d);
+            resetReqBtn();return;
+        }
         currentRequestId=d.request_id;
         reqStartTime=Date.now();
         document.getElementById('req-status').textContent='已提交: '+d.request_id.slice(-13);
@@ -588,36 +627,36 @@ function requestCollection(){
         pollRequestStatus();
     }).catch(function(e){
         console.error('Create request error:',e);
-        btn.disabled=false;btn.textContent='🔬 采集一次最新数据';
+        resetReqBtn();
     });
 }
 function pollRequestStatus(){
     if(!currentRequestId)return;
     // Client-side 5-second timeout
     if(reqStartTime && (Date.now()-reqStartTime)>5000){
-        var statusEl=document.getElementById('req-status'),btn=document.getElementById('req-btn');
+        var statusEl=document.getElementById('req-status');
         statusEl.textContent='⏰ 超时 (5s)';
         statusEl.className='req-status timeout';
-        btn.disabled=false;btn.textContent='🔬 采集一次最新数据';
+        resetReqBtn();
         currentRequestId=null;reqStartTime=null;clearInterval(reqPollTimer);reqPollTimer=null;
         return;
     }
     fetch('/api/request_status/'+currentRequestId)
     .then(function(r){return r.json();})
     .then(function(d){
-        var statusEl=document.getElementById('req-status'),btn=document.getElementById('req-btn');
+        var statusEl=document.getElementById('req-status');
         if(d.status==='RECEIVED'){
             statusEl.textContent='板子已接收';
             statusEl.className='req-status received';
         }else if(d.status==='COMPLETED'){
             statusEl.textContent='✅ 完成! ['+d.request_id.slice(-13)+'] AX='+(d.ax||0).toFixed(2)+' AY='+(d.ay||0).toFixed(2)+' AZ='+(d.az||0).toFixed(2);
             statusEl.className='req-status completed';
-            btn.disabled=false;btn.textContent='🔬 采集一次最新数据';
+            resetReqBtn();
             currentRequestId=null;reqStartTime=null;clearInterval(reqPollTimer);reqPollTimer=null;
         }else if(d.status==='TIMEOUT'){
             statusEl.textContent='⏰ 超时';
             statusEl.className='req-status timeout';
-            btn.disabled=false;btn.textContent='🔬 采集一次最新数据';
+            resetReqBtn();
             currentRequestId=null;reqStartTime=null;clearInterval(reqPollTimer);reqPollTimer=null;
         }
         // PENDING: keep polling (status remains 'pending')
@@ -625,10 +664,10 @@ function pollRequestStatus(){
         console.error('Poll status error:',e);
         // If poll fails for 5+ seconds, force timeout
         if(reqStartTime && (Date.now()-reqStartTime)>5000){
-            var statusEl=document.getElementById('req-status'),btn=document.getElementById('req-btn');
+            var statusEl=document.getElementById('req-status');
             statusEl.textContent='⏰ 超时 (网络异常)';
             statusEl.className='req-status timeout';
-            btn.disabled=false;btn.textContent='🔬 采集一次最新数据';
+            resetReqBtn();
             currentRequestId=null;reqStartTime=null;clearInterval(reqPollTimer);reqPollTimer=null;
         }
     });
@@ -1731,7 +1770,7 @@ function checkOfflineStatus() {
         var b = document.getElementById('offline-banner');
         if (d.offline_mode) {
             b.classList.add('visible');
-            b.innerHTML = '⚠️ ' + htmlEsc(d.banner_text || '外网不可用：本地基础反馈仍可用');
+            b.innerHTML = '⚠️ ' + htmlEsc(d.banner_text || '网络离线：云端大模型不可用，已切换至本地安全推理');
         }
         else { b.classList.remove('visible'); }
     })
