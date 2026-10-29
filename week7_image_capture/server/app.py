@@ -882,7 +882,7 @@ def api_capture_image():
             log.warning('Capture: recent cached image (age=%.1fs), NOT live', age)
             return jsonify({
                 'success': False,
-                'error': f'非本次采集：latest.jpg 是 {age:.1f}s 前上传的缓存图，本次未等待新图',
+                'error': f'等待新图超时，当前展示的是历史缓存图（latest.jpg 为 {age:.1f}s 前上传，本次未等待新图）',
                 'waited_seconds': 0.0,
                 'cache_file': 'latest.jpg',
                 'source': 'recent_cache',

@@ -696,7 +696,7 @@ function captureImage(retriesLeft) {
             area.appendChild(cimg);
             var warn = document.createElement('div');
             warn.className = 'cache-warning';
-            warn.textContent = '⚠️ 非本次采集：这是 ' + (data.captured_at || '未知时间') + ' 的缓存图片 (' + (data.age_seconds != null ? data.age_seconds : '?') + 's 前)';
+            warn.textContent = '⚠️ 当前展示为历史缓存，非本次实时拍摄（' + (data.captured_at || '未知时间') + ' 上传，' + (data.age_seconds != null ? data.age_seconds : '?') + 's 前）';
             area.appendChild(warn);
             lastCapturedImageUrl = null;
             badge.textContent = '⚠️ 历史缓存';

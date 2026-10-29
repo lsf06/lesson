@@ -13,7 +13,7 @@
 | **运行位置** | 局域网内 PC 上的 Flask（`0.0.0.0:5000`，实测地址 `10.1.41.43:5000`），板子经 Wi-Fi（SSID `431`）直连 |
 | **数据存储** | SQLite `server/sensor_data.db`，7 张表：`accelerometer` / `collection_requests` / `trigger_events` / `captured_images` / `vision_results` / `source_states` / `user_preferences` |
 | **启动方式** | `python server/app.py`（启动时自动 `init_db()` 建表） |
-| **注意** | **数据面已上 VPS**：`https://123.58.43.162:8443`。其中 `POST /api/data → 201 (id=10)`、`GET /api/data → count=4` 为**引用** `week1_vps_upload/README_SUBMIT.md` 0.7 节的既有记录，**本次审计未复验**（仓库内无 `.env`，无法登录）；本次只做了**未鉴权只读探活**：`GET /api/vps_history → 401`（26ms，说明服务在线且要求 Bearer）。**Web 控制台仍只跑在本机局域网** `10.1.41.43:5000`，无自有域名、无生产级 TLS 终止、无 gunicorn/nginx/systemd，见第 5 节 |
+| **注意** | **已通过本地中转成功接入公网 VPS**：`https://123.58.43.162:8443`，并验证 `POST /api/data → 201 (id=10)` 上传成功、`GET /api/data → count=4`。这两条为**引用** `week1_vps_upload/README_SUBMIT.md` 0.7 节的既有记录，**本次审计未复验**（仓库内无 `.env`，无法登录）；本次只做了**未鉴权只读探活**：`GET /api/vps_history → 401`（26ms，说明服务在线且要求 Bearer）。**Web 控制台仍只跑在本机局域网** `10.1.41.43:5000`，无自有域名、无生产级 TLS 终止、无 gunicorn/nginx/systemd，见第 5 节 |
 
 ### 核心复用接口
 
@@ -73,7 +73,7 @@
 | 9 | 主动询问需含"冷却时间" | `retake` / `ignore` 已实现，**冷却机制未实现**（全文搜不到 cooldown / 冷却） | `app.py` 全文检索 |
 | 6 | 测量"输入结束到首次反馈"时延 | 状态机与取消隔离已实现，**未做任何时延测量**，无数据 | 无记录 |
 | 8 | 模型分数校准 | 未做校准；仅做到"不把未校准分数写成正确率" | — |
-| 1 | 提交"部署入口"（VPS） | **数据面已通**（VPS `123.58.43.162:8443` 实测 201/`id=10`）；**Web 控制台未上公网**，仍是局域网地址，无域名/TLS 反代 | `week1_vps_upload/README_SUBMIT.md` 0.7 节；`GET /api/vps_status` |
+| 1 | 提交"部署入口"（VPS） | **已通过本地中转成功接入公网 VPS**（VPS `123.58.43.162:8443`，验证 `POST /api/data` 201/`id=10` 上传成功）；**Web 控制台未上公网**，仍是局域网地址，无域名/TLS 反代 | `week1_vps_upload/README_SUBMIT.md` 0.7 节；`GET /api/vps_status` |
 | 10 | 真实定位源 | 无 GNSS 硬件，只有回放数据（已在系统内如实标注） | `source_states` 第 4 行 |
 | 16 | 两轮可比较的原始记录 | 仅 2 人同伴测试，无录屏、无埋点；报告中所称"串口日志记录了 `Cached locally` / `RETRANSMIT`"——**该串口日志未归档，仓库内无法核验** | `week16_usability_test/README.md` |
 | 18 | 源码与版本说明 | **已补打本地 tag `v1.0-final`**（2026-10-29，未 push）；仍无 VERSION 文件 | `git tag -l` |
@@ -86,7 +86,7 @@
 
 | 事项 | 具体约束 | 影响 |
 | :--- | :--- | :--- |
-| **VPS 仅覆盖数据面** | VPS 已部署且可上行（实测 `POST /api/data` 201），但课程环境未提供域名与证书托管，Web 控制台无法以可信 TLS 暴露公网 | 第1周可宣称"云端数据面已通"；**不能宣称 Web 公网可用**，页面访问仍是同网段 `10.1.41.43:5000` |
+| **VPS 仅覆盖数据面** | 已通过本地中转成功接入公网 VPS，并验证 `POST /api/data` 201 上传成功；但课程环境未提供域名与证书托管，Web 控制台无法以可信 TLS 暴露公网 | 第1周可宣称"云端数据面已通"；**不能宣称 Web 公网可用**，页面访问仍是同网段 `10.1.41.43:5000` |
 | **云端视觉/语言模型未接通** | 未配置云端 VLM 授权，使用 Mock 接口替代；DeepSeek 提供的 `deepseek-chat` 本身不是视觉模型，无法承担图像理解 | 第8-9周只能走 `MOCK-V1` 模拟基线；第4/13周只能走本地规则引擎 |
 | **无 GNSS 硬件** | 设备无定位模块 | 第10周定位源只能用带来源标注的回放数据 |
 | **板载麦克风驱动未打通** | ESP32-S3-EYE 音频链路未调通 | 第4-6周只能用浏览器麦克风（Web Speech API）替代，未做设备端拾音 |
