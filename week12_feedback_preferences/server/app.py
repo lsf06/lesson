@@ -1043,7 +1043,9 @@ def api_capture_image():
             log.warning('Capture: recent cached image (age=%.1fs), NOT live', age)
             return jsonify({
                 'success': False,
-                'error': f'等待新图超时，当前仅有 {age:.1f}s 前的缓存图',
+                'error': f'非本次采集：latest.jpg 是 {age:.1f}s 前上传的缓存图，本次未等待新图',
+                'waited_seconds': 0.0,
+                'cache_file': 'latest.jpg',
                 'source': 'recent_cache',
                 'captured_at': captured_at,
                 'age_seconds': round(age, 1),
@@ -1086,7 +1088,8 @@ def api_capture_image():
 
     # 2d. Timeout — no image from ESP32
     log.warning('Capture timeout: no image from ESP32 after 30s (request_id=%s)', request_id)
-    return jsonify({'success': False, 'error': 'no images', 'source': 'timeout'}), 404
+    return jsonify({'success': False, 'error': 'no images', 'source': 'timeout',
+                    'waited_seconds': 30.0}), 404
 
 
 # ═══════════════════════════════════════════════════════════

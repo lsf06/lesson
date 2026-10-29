@@ -6,6 +6,8 @@
 >
 > ⚠️ **证据等级声明**：本报告中视觉推理结果为模拟实现（`ENABLE_MOCK_VISION=True`，`model_version=MOCK-V1`），
 > 未接入任何真实模型权重，**不得**作为端侧或云端视觉推理能力的证据；详见 `week8_vision_feedback/README.md` 第 0 节。
+> 本目录代码位置（2026-10-29 `git grep -n` 实测）：`server/app.py:1238` 开关、`:1245` `_mock_infer()`、`:1263` `model_version`、`:1284-1290` 调用点；
+> week8 同源代码位于 `week8_vision_feedback/server/app.py:957 / :964 / :982`（`:1003-1009` 为调用点，week9~week13 各有一份拷贝，行号不同）。
 > 第一节测试环境表中「云端 DeepSeek API（未配置 API Key）」意为**云端推理路径实际未跑通**。
 > 第五节启动路径已更正为 `week13_14_15_edge_inference`。
 

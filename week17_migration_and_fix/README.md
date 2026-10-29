@@ -82,8 +82,18 @@ python heart_rate_simulator.py
   7 |     75 |    09:00:07 |      09:00:44 |    37.0 | recovered
   8 |     78 |    09:00:08 |      09:00:44 |    36.0 | recovered
 [INFO] flush -> 20 条补传记录，丢弃 5 条最旧记录
+
+=== 计数口径（逐项可核对，不是自证）===
+[COUNT] 样本总数 seq=33 = 阶段1 5(live) + 阶段2 3(进队列) + 阶段4 灌入 25
+[COUNT] recovered=23 = 阶段3 补传 3 + 阶段4 补传 20
+[COUNT] 阶段4：灌入 25 = 入队 20 + 丢弃最旧 5
+[COUNT] live=5（阶段1 直传，retransmit_ts=0）
+
 ALL ASSERTIONS PASSED (live=5, recovered=23, dropped=5)
 ```
+
+> `flush -> 20` 指**阶段4 那一次** flush；`recovered=23` 是全局累加（阶段3 的 3 条 + 阶段4 的 20 条）。
+> 33 个样本 = 5 live + 3 阶段3 + 25 阶段4（其中 20 入队、5 被丢最旧）。三者互相对得上，不存在「20 ≠ 23」的矛盾。
 
 断言覆盖：补传记录必须 `recovered` 且 `retransmit_ts > original_ts`；实时记录不得被标成补传；
 补传延迟必须超过 30s 阈值；队列容量上限与丢最旧计数正确。

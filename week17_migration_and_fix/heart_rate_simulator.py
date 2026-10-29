@@ -128,6 +128,16 @@ def main() -> int:
           % (len(recovered2), cache2.dropped))
 
     print()
+    print('=== 计数口径（逐项可核对，不是自证）===')
+    print('[COUNT] 样本总数 seq=%d = 阶段1 %d(live) + 阶段2 %d(进队列) + 阶段4 灌入 %d'
+          % (seq, len(live), len(recovered), len(recovered2) + cache2.dropped))
+    print('[COUNT] recovered=%d = 阶段3 补传 %d + 阶段4 补传 %d'
+          % (len(recovered + recovered2), len(recovered), len(recovered2)))
+    print('[COUNT] 阶段4：灌入 %d = 入队 %d + 丢弃最旧 %d'
+          % (len(recovered2) + cache2.dropped, len(recovered2), cache2.dropped))
+    print('[COUNT] live=%d（阶段1 直传，retransmit_ts=0）' % len(live))
+
+    print()
     print('=== 结果表 ===')
     print_table(live + recovered + recovered2)
 

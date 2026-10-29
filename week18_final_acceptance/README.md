@@ -13,7 +13,7 @@
 | **运行位置** | 局域网内 PC 上的 Flask（`0.0.0.0:5000`，实测地址 `10.1.41.43:5000`），板子经 Wi-Fi（SSID `431`）直连 |
 | **数据存储** | SQLite `server/sensor_data.db`，7 张表：`accelerometer` / `collection_requests` / `trigger_events` / `captured_images` / `vision_results` / `source_states` / `user_preferences` |
 | **启动方式** | `python server/app.py`（启动时自动 `init_db()` 建表） |
-| **注意** | **数据面已上 VPS**：`https://123.58.43.162:8443`，2026-10-29 实测 `POST /api/data` 返回 `201`（`id=10`）、`GET /api/data` 代理后 `count=4`（见 `week1_vps_upload/README_SUBMIT.md` 0.7 节）；今日只读探活返回 `401`（26ms，服务在线）。**Web 控制台仍只跑在本机局域网** `10.1.41.43:5000`，无自有域名、无生产级 TLS 终止、无 gunicorn/nginx/systemd，见第 5 节 |
+| **注意** | **数据面已上 VPS**：`https://123.58.43.162:8443`。其中 `POST /api/data → 201 (id=10)`、`GET /api/data → count=4` 为**引用** `week1_vps_upload/README_SUBMIT.md` 0.7 节的既有记录，**本次审计未复验**（仓库内无 `.env`，无法登录）；本次只做了**未鉴权只读探活**：`GET /api/vps_history → 401`（26ms，说明服务在线且要求 Bearer）。**Web 控制台仍只跑在本机局域网** `10.1.41.43:5000`，无自有域名、无生产级 TLS 终止、无 gunicorn/nginx/systemd，见第 5 节 |
 
 ### 核心复用接口
 
