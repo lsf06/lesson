@@ -1348,7 +1348,7 @@ function refreshSourceStates() {
             data.sources.forEach(function(src) {
                 var label = SOURCE_LABELS[src.source_name] || {icon:'❓', name:src.source_name};
                 var statusClass = src.status || 'not_attempted';
-                var statusText = {success:'✅ 正常', stale:'🟡 过期', failed:'❌ 失败', not_attempted:'⚪ 未启动'}[statusClass] || statusClass;
+                var statusText = {success:'✅ 正常', stale:'🟡 过期', failed:'❌ 失败', no_fix:'🔵 无有效解（非故障）', not_attempted:'⚪ 未启动'}[statusClass] || statusClass;
 
                 // Build value display
                 var valueHtml = '';

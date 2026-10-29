@@ -695,7 +695,7 @@ python app.py
 
 | 源名称 | source_name | 视觉图标 | 过期阈值 | 示例正常值 |
 |--------|-------------|----------|---------|-----------|
-| 加速度传感器 | sensor | 📡 | 5s | ax=0.12 ay=-0.03 az=9.81 |
+| 加速度传感器 | sensor | 📡 | 5s | ax=-0.72 ay=0.52 az=-1.06（单位 **g**，静止模长≈1.3，含未校准偏置） |
 | 网络连接 | network | 🌐 | 30s | WiFi connected |
 | 摄像头 | camera | 📷 | 60s | filename=capture_20261008_1553.jpg |
 | 位置(GPS) | gps | 📍 | 60s | lat=31.2304 lng=121.4737 |
@@ -712,7 +712,7 @@ python app.py
 | 步骤 | 操作 | 预期 |
 |------|------|------|
 | A | 启动 app.py → 进入 📊多源状态 | 📍位置（GPS）显示 🟢 成功，有 lat/lng，带"回放数据-仅供演示"标注 |
-| B | `curl -X POST http://localhost:5000/api/simulate_no_fix` | 📍位置变为 ❌ 失败，值显示"无有效解，非故障" |
+| B | `curl -X POST http://localhost:5000/api/simulate_no_fix` | 📍位置变为 🔵 无有效解（非故障），值显示"无有效解，非故障"（**不是** ❌ 失败：无解≠故障） |
 | C | 观察 | 卡片底部的**陈旧数据区**保留旧坐标 lat=31.23 lng=121.47，标注"陈旧" |
 
 #### 场景②：网络在线但位置未更新（独立性验证）
@@ -825,7 +825,7 @@ python app.py
 | interaction | 上下文决策 | `known_facts[]`, `uncertain_items[]`, `question`, `rule_version` |
 
 **推导规则：**
-- `is_moving`：\|√(ax²+ay²+az²) - 9.81\| > 0.5 → "可能在移动"，否则"静止"
+- `is_moving`：设备上报单位为 **g**，先换算 `mag_g = mag if mag<=4.0 else mag/9.80665`；`|mag_g - 1.0| > 0.5` → "可能在移动"，否则"静止"（`derived_states.accel_magnitude` 也输出 g 值）
 - `position_trustworthy`：GPS status=success 且 age<60s → true
 - `camera_usable`：camera status=success 且 age<60s → true
 

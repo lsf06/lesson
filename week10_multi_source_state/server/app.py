@@ -207,10 +207,11 @@ def update_source_state(source_name, status, latest_value, observation_time=None
         row = c.fetchone()
         prev_val = None
         prev_obs = None
-        if row and row[0] == 'success' and status == 'failed':
+        # 2026-10-29 批1改动2：no_fix（无有效解≠故障）同样要保留上次 success 值
+        if row and row[0] == 'success' and status in ('failed', 'no_fix'):
             prev_val = row[1]
             prev_obs = row[2]
-        if status == 'failed' and row and row[0] == 'success':
+        if status in ('failed', 'no_fix') and row and row[0] == 'success':
             # Keep previous success data visible
             c.execute('''UPDATE source_states SET status=?, latest_value=?, last_observation_time=?,
                          last_receive_time=?, previous_value=?, previous_observation_time=?
@@ -1317,8 +1318,8 @@ def api_source_states():
 
 @app.route('/api/simulate_no_fix', methods=['POST'])
 def api_simulate_no_fix():
-    """模拟 GNSS no_fix：位置源标记为 failed，保留旧坐标。"""
-    update_source_state('gps', 'failed', '无有效解，非故障',
+    """模拟 GNSS no_fix：位置源标记为 no_fix（无有效解 ≠ 故障），保留旧坐标。"""
+    update_source_state('gps', 'no_fix', '无有效解，非故障',
                        observation_time=datetime.now().isoformat())
     return jsonify({'success': True, 'message': 'GPS set to no_fix'})
 
@@ -1327,5 +1328,7 @@ if __name__ == '__main__':
     init_db()
     init_vision_db()
     init_source_states_db()
-    log.info('Starting sensor dashboard on http://0.0.0.0:5000')
-    app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
+    # 2026-10-29 批1改动0：端口参数化，默认 5000，便于在不占用 5000 时另起实例验证
+    _port = int(os.environ.get('PORT', '5000'))
+    log.info('Starting sensor dashboard on http://0.0.0.0:%d', _port)
+    app.run(host='0.0.0.0', port=_port, debug=False, threaded=True)

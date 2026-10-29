@@ -63,3 +63,11 @@ week7_image_capture/esp32_firmware/components/esp32-camera/
 
 # AI 助手本地缓存（不追踪）
 .workbuddy/
+
+# 2026-10-29 batch1: local ESP-IDF env script + evidence archive (not tracked)
+/env_setup.ps1
+/evidence/
+
+# 2026-10-29 batch1: 11:34 local test captures (runtime artifacts, do not commit)
+/week1_vps_upload/server/static/captured/capture_20261029_113434.jpg
+/week1_vps_upload/server/static/captured/capture_20261029_113506.jpg

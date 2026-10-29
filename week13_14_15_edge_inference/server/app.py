@@ -257,11 +257,11 @@ def update_source_state(source_name, status, latest_value, observation_time=None
         row = c.fetchone()
         prev_val = None
         prev_obs = None
-        if row and row[0] == 'success' and status == 'failed':
+        if row and row[0] == 'success' and status in ('failed', 'no_fix'):
             prev_val = row[1]
             prev_obs = row[2]
         # Build SET clause dynamically for optional transmission_status
-        if status == 'failed' and row and row[0] == 'success':
+        if status in ('failed', 'no_fix') and row and row[0] == 'success':
             # Keep previous success data visible
             if transmission_status:
                 c.execute('''UPDATE source_states SET status=?, latest_value=?, last_observation_time=?,
@@ -1513,8 +1513,8 @@ def api_source_states():
 
 @app.route('/api/simulate_no_fix', methods=['POST'])
 def api_simulate_no_fix():
-    """模拟 GNSS no_fix：位置源标记为 failed，保留旧坐标。"""
-    update_source_state('gps', 'failed', '无有效解，非故障',
+    """模拟 GNSS no_fix：位置源标记为 no_fix（无有效解 ≠ 故障），保留旧坐标。"""
+    update_source_state('gps', 'no_fix', '无有效解，非故障',
                        observation_time=datetime.now().isoformat())
     return jsonify({'success': True, 'message': 'GPS set to no_fix'})
 
@@ -1524,7 +1524,7 @@ def api_simulate_no_fix():
 # ═══════════════════════════════════════════════════════════
 
 RULES_VERSION = "v1.0"
-MOVING_THRESHOLD = 0.5          # |accel_magnitude - 9.81| > 0.5 → 可能在移动
+MOVING_THRESHOLD = 0.5          # |accel_magnitude(g) - 1.0| > 0.5 → 可能在移动（设备单位为 g）
 STALE_THRESHOLD_SECONDS = 60    # 源数据超过此时间视为过期
 
 
@@ -1563,6 +1563,7 @@ def api_context():
             'value': val,
             'age_seconds': round(age, 1) if age is not None else None,
             'source_location': r['source_location'] or '',
+            'observation_time': obs_str,   # 2026-10-29 批1改动3：源的原始观测时间（不再用 now 冒充）
         }
 
     # ── 第二层：派生状态 (derived_states) ──
@@ -1573,8 +1574,10 @@ def api_context():
     ay = float(sensor_val.get('ay', 0)) if isinstance(sensor_val, dict) else 0.0
     az = float(sensor_val.get('az', 0)) if isinstance(sensor_val, dict) else 0.0
     mag = math.sqrt(ax * ax + ay * ay + az * az)
-    derived['is_moving'] = '可能在移动' if abs(mag - 9.81) > MOVING_THRESHOLD else '静止'
-    derived['accel_magnitude'] = round(mag, 3)
+    # 2026-10-29 批1改动1b：单位换算为 g（设备上报 g；本板静止实测模长≈1.3）
+    mag_g = mag if mag <= 4.0 else mag / 9.80665
+    derived['is_moving'] = '可能在移动' if abs(mag_g - 1.0) > MOVING_THRESHOLD else '静止'
+    derived['accel_magnitude'] = round(mag_g, 3)
     gps = raw.get('gps', {})
     derived['position_trustworthy'] = (
         gps.get('status') == 'success' and
@@ -1592,6 +1595,19 @@ def api_context():
     def t_fmt(dt_obj):
         return dt_obj.strftime('%H:%M:%S') if dt_obj else ''
 
+    def src_time(src):
+        """2026-10-29 批1改动3：取源的原始观测时间，解析失败返回空串（绝不回退到 now）"""
+        s = (src or {}).get('observation_time')
+        if not s:
+            return ''
+        try:
+            return datetime.fromisoformat(s).strftime('%H:%M:%S')
+        except Exception:
+            try:
+                return datetime.strptime(s, '%Y-%m-%d %H:%M:%S').strftime('%H:%M:%S')
+            except Exception:
+                return ''
+
     known_facts = []
     uncertain_items = []
 
@@ -1599,13 +1615,13 @@ def api_context():
     sensor_age = sensor.get('age_seconds')
     if sensor_age is not None:
         fact_text = '当前可能静止' if derived['is_moving'] == '静止' else '当前可能在移动'
-        known_facts.append({'fact': fact_text, 'source': '规则推断', 'observed_at': t_fmt(now)})
+        known_facts.append({'fact': fact_text, 'source': '规则推断', 'observed_at': src_time(sensor)})
 
     # -- 网络已知事实 --
     net = raw.get('network', {})
     net_age = net.get('age_seconds')
     if net.get('status') == 'success' and net_age is not None and net_age < STALE_THRESHOLD_SECONDS:
-        known_facts.append({'fact': '网络连接正常', 'source': '网络连接', 'observed_at': t_fmt(now)})
+        known_facts.append({'fact': '网络连接正常', 'source': '网络连接', 'observed_at': src_time(net)})
 
     # -- 位置处理 --
     gps_val = gps.get('value') or {}
@@ -1616,7 +1632,7 @@ def api_context():
         known_facts.append({
             'fact': f'当前位置 lat={lat} lng={lng}',
             'source': f'位置GPS [{gps.get("source_location", "")}]',
-            'observed_at': t_fmt(now),
+            'observed_at': src_time(gps),
         })
     elif gps_val and isinstance(gps_val, dict) and (gps_val.get('lat') is not None) and gps_age is not None:
         lat = gps_val.get('lat', '?')
@@ -1625,13 +1641,13 @@ def api_context():
         known_facts.append({
             'fact': f'上次报告位置是 lat={lat} lng={lng}（{min_ago}分钟前）',
             'source': f'位置GPS [{gps.get("source_location", "")}]',
-            'observed_at': t_fmt(now),
+            'observed_at': src_time(gps),
         })
         uncertain_items.append({
             'item': '当前位置',
             'reason': f'位置源上次报告在{min_ago}分钟前，已过期',
         })
-    elif gps.get('status') == 'failed':
+    elif gps.get('status') in ('failed', 'no_fix'):
         uncertain_items.append({'item': '当前位置', 'reason': 'GPS 无有效解，非故障'})
     else:
         uncertain_items.append({'item': '当前位置', 'reason': '位置不可用'})
@@ -1640,7 +1656,7 @@ def api_context():
     cam_val = cam.get('value') or {}
     if derived.get('camera_usable'):
         fname = cam_val.get('filename', 'unknown') if isinstance(cam_val, dict) else 'unknown'
-        known_facts.append({'fact': f'摄像头可用，最后采集 {fname}', 'source': '摄像头', 'observed_at': t_fmt(now)})
+        known_facts.append({'fact': f'摄像头可用，最后采集 {fname}', 'source': '摄像头', 'observed_at': src_time(cam)})
     elif cam.get('status') == 'not_attempted':
         uncertain_items.append({'item': '画面内容', 'reason': '摄像头未启动'})
     else:
@@ -1905,13 +1921,16 @@ def api_local_infer():
             ay = float(accelerometer_value.get('ay', 0))
             az = float(accelerometer_value.get('az', 0))
             mag = math.sqrt(ax*ax + ay*ay + az*az)
-            if abs(mag - 9.81) > 2.0:
+            # 2026-10-29 批1改动1：设备上报单位为 g（本板静止实测模长 1.31~1.34，含未校准偏置），
+            # 原实现与 9.81 比较，静止时 |1.31-9.81|=8.5 > 2.0 → 恒判「可能在移动」。
+            mag_g = mag if mag <= 4.0 else mag / 9.80665
+            if abs(mag_g - 1.0) > 0.5:
                 return jsonify({
                     "success": True, "label": "可能在移动",
-                    "score": round(1.0 - min(abs(mag - 9.81) / 20.0, 1.0), 4),
+                    "score": round(1.0 - min(abs(mag_g - 1.0) / 1.5, 1.0), 4),
                     "status": "success", "source": "local_near_edge",
                     "location_note": "近端边缘验证，目标设备验收待补",
-                    "detail": "加速度模长={:.2f}".format(mag)
+                    "detail": "加速度模长={:.2f}g（静止基准 1.0g）".format(mag_g)
                 })
         return jsonify({
             "success": True, "label": "环境正常", "score": 0.85,
@@ -1996,5 +2015,7 @@ if __name__ == '__main__':
     init_vision_db()
     init_source_states_db()
     init_user_preferences_db()
-    log.info('Starting sensor dashboard on http://0.0.0.0:5000')
-    app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
+    # 2026-10-29 批1改动0：端口参数化，默认 5000，避免与已占用端口冲突时无法另起实例
+    _port = int(os.environ.get('PORT', '5000'))
+    log.info('Starting sensor dashboard on http://0.0.0.0:%d', _port)
+    app.run(host='0.0.0.0', port=_port, debug=False, threaded=True)

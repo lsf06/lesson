@@ -474,3 +474,88 @@ GET /api/vps_history -> HTTP 401 in 0.026317s
 「视觉推理」「心率迁移」是夸大，现已降级为可核验的 Mock / 仿真并写明边界；
 「VPS 未部署」是自我贬低的过时表述，已按实测改为「数据面通、Web 未上公网」。
 剩下的做不到的部分没有一条被伪造成做得到。
+
+---
+
+## 十一、批1（2026-10-29 13:50–14:35）：课程周次缺口修复（量纲 / no_fix / observed_at / 端口）
+
+> 范围：`week1_vps_upload`、`week10_multi_source_state`、`week11_context_engine`、`week12_feedback_preferences`、`week13_14_15_edge_inference` 五份后端 + 五份 `templates/index.html` + 根 `README.md`。
+> 铁律：验证**只用 5001**，5000 全程未起（`netstat -ano | findstr :5000` 无 `LISTENING`，收尾复核同上）。
+
+### 11.1 四条改动与根因
+
+| # | 缺陷（修前） | 根因 | 处置 | 落地位置 |
+|---|---|---|---|---|
+| 0 | 起第二实例验证必与现场 5000 抢端口 | 端口硬编码 | `_port = int(os.environ.get('PORT','5000'))`，默认不变 | week10 `:1332`、week11 `:1494`、week13 `:2019`（week12/week1 **按约定未改**） |
+| 1 | `/api/local_infer` 恒判「可能在移动」 | 设备上报单位是 **g**（静止实测模长 1.31–1.34），代码拿 `9.81` 当基准 | `mag_g = mag if mag <= 4.0 else mag / 9.80665`；判据 `abs(mag_g - 1.0) > 0.5`；`detail` 输出 g | week13 `api_local_infer`、**week1 同源拷贝**（原以为只有 week13，实物发现 week1 也有，一并修） |
+| 1b | `/api/context.derived_states.is_moving` 恒判移动 | 同上（另一处拷贝） | 同上换算，`accel_magnitude` 一并输出 g | week1/11/12/13 各 1 处 |
+| 2 | GNSS 无解被写成 `failed`（把「没解」污名成「坏了」） | 状态机只有 success/failed | `simulate_no_fix` 写 `status='no_fix'`；**保旧值条件**扩为 `status in ('failed','no_fix')`（兼容库内历史 failed 行）；上下文 `gps.get('status') in ('failed','no_fix')` | 5 份后端 + 5 份前端 `statusText` 加 `no_fix:'🔵 无有效解（非故障）'` + `README.md:715` |
+| 3 | `known_facts[].observed_at` 用「生成时刻」冒充「观测时刻」 | 直接 `t_fmt(now)` | `raw[name]` 增 `observation_time`（源的真实 `last_observation_time`）→ `src_time(src)` 解析，**失败返回空串，绝不回退 now**；5 处事实全部改源时间 | week11 先行；随后 week1 `:1863/1895/1915/1921/1932/1941/1956`、week12 `:1426/1458/1478/1484/1495/1504/1519`、week13 `:1566/1598/1618/1624/1635/1644/1659` |
+
+> 改动3 的动机：`observed_at == 生成时刻` 时，「事实」与「何时观测到的」被绑死，等于没有时间证据。week1 是第 18 周现场版，只修 week11 等于现场演示仍是假时间。
+
+### 11.2 实测矩阵（全部在 2026-10-29 本机复跑）
+
+| 检查 | 手段 | 结果 |
+|---|---|---|
+| A1 端口参数化生效 | `PORT=5001` 起 week13，`GET /` + `POST /api/local_infer` | 日志 `Starting sensor dashboard on http://0.0.0.0:5001`，`local_infer HTTP 200`；无板时返回「画面不可用」（**正确语义**，不是推理结果） |
+| A2 量纲分支 | scratch DB + `test_client`（不碰真实库、不监听端口） | `|a|=1.305` → `环境正常`(0.85)；`|a|=1.658` → `可能在移动`(0.5611)；`detail=加速度模长=1.66g（静止基准 1.0g）` |
+| B no_fix 语义（live） | week10、week13 各起 5001 → `POST /api/simulate_no_fix` → 前后读 `source_states` | 两份均 `status=no_fix`，`previous_value` 仍保留 `lat 31.2304 / lng 121.4737`（旧坐标没丢） |
+| C observed_at（fixture） | 四份 `test_client` + 两条 GPS 分支（新 8s / 过期 400s） | 见 11.3，`ALL PASS`；`observed_at` 分别等于源真实时间 14:32:02/03/04/00（B 场景 GPS 为 14:25:32），**均 ≠ now(14:32:12)** |
+| D 静态 | `python -c "ast.parse(...)"` × 5；`git grep -n 't_fmt(now)' -- week12 week13 week1` | `AST OK: 5`；grep **0 命中**（exit=1） |
+| E 量纲回归 | 同上 fixture | 四份 `accel_magnitude=1.383`、`is_moving=静止`、`uncertain=["GPS 无有效解，非故障"]` |
+| F 端口收尾 | `netstat -ano` | 5001/5000 均无 `LISTENING`；只关了自己起的 PID，`msedge 21400` 未动 |
+
+### 11.3 原始输出（节选，完整见 `evidence_batch1.zip`）
+
+```
+--- week1 A 新鲜 GPS(8s) -> 当前位置分支
+  OK   当前可能静止 | source= 规则推断 | observed_at= 14:32:02
+  OK   网络连接正常 | source= 网络连接 | observed_at= 14:32:03
+  OK   当前位置 lat=31.2304 lng=121.4737 | source= 位置GPS | observed_at= 14:32:04
+  OK   摄像头可用，最后采集 fixture_still.jpg | source= 摄像头 | observed_at= 14:32:00
+  OK   observed_at 全都不等于 now(14:32:12)
+--- week1 B 过期 GPS(400s) -> 上次报告位置分支
+  OK   上次报告位置是 lat=31.2304 lng=121.4737 | observed_at= 14:25:32
+  OK   no_fix 回归 -> ["GPS 无有效解，非故障"] | derived -> {"accel_magnitude": 1.383, "is_moving": "静止", ...}
+RESULT week1 PASS
+... week12 PASS / week13 PASS / week11 PASS
+SUMMARY [('week1', True), ('week12', True), ('week13', True), ('week11', True)]
+ALL PASS
+```
+
+week13 服务端日志（`evidence/batch1/week13_flask_tail200_batch1_20261029.log`，仅 `-Tail 200`）：
+
+```
+[2026-10-29 14:01:28] INFO >>> POST /api/local_infer ?   from 127.0.0.1
+[2026-10-29 14:01:28] INFO 127.0.0.1 - - [29/Oct/2026 14:01:28] "POST /api/local_infer HTTP/1.1" 200 -
+[2026-10-29 14:06:34] INFO Starting sensor dashboard on http://0.0.0.0:5001
+[2026-10-29 14:06:36] INFO >>> POST /api/simulate_no_fix ?   from 127.0.0.1
+[2026-10-29 14:06:36] INFO 127.0.0.1 - - [29/Oct/2026 14:06:36] "POST /api/simulate_no_fix HTTP/1.1" 200 -
+```
+
+week11 服务端日志（`evidence/batch1/week11_flask_tail200_batch1_20261029.log`）：
+
+```
+[2026-10-29 14:07:03] INFO Starting sensor dashboard on http://0.0.0.0:5001
+[2026-10-29 14:07:04] INFO >>> GET /api/context ?   from 127.0.0.1
+[2026-10-29 14:07:04] INFO 127.0.0.1 - - [29/Oct/2026 14:07:04] "GET /api/context HTTP/1.1" 200 -
+```
+
+### 11.4 缺口：week13「近端边缘」只能写到「接口通」
+
+A1 在**无摄像头图**的条件下返回 `画面不可用`，这是正确语义，但**不能**据此写「端侧真实推理完成」。本批对此的口径固定为：
+
+- 可写：`/api/local_infer` 接口通（HTTP 200）、量纲分支经 fixture 验证、无图时明确拒绝出结论；
+- 不可写：真实图像推理、模型精度、端侧加速比；
+- 待补条件：`week7` 相机出图（需烧录，本机无 ESP 板 / 无 COM 口）→ 拿真实 `latest.jpg` 再跑一次本接口并归档响应原文。
+
+### 11.5 本批未做（写明，不粉饰）
+
+| 项 | 原因 | 归属 |
+|---|---|---|
+| week12 端口参数化 | 约定本批只动 week10/11/13 | 批2 |
+| week1 端口参数化 | 第 18 周现场版，保持 5000 硬编码，避免现场行为变化 | 不改 |
+| W7 相机烧录 / 串口日志 | 无 ESP 板、无 COM 口（枚举仅 ACPI/蓝牙） | 需人工插板；`env_setup.ps1` 已备好 `Invoke-IdfPy` |
+| DeepSeek key、视觉权重、MAX30102、真人被试 | 外部依赖未到 | 不阻塞批1 |
+| `idf.py` 版本 | `ESP-IDF v5.4.4-dirty`（工作区有本地改动） | 仅记录 |
