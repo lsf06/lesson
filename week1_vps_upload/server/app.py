@@ -501,9 +501,16 @@ def vps_upload_data(channel, payload):
         log.warning('[VPS] 本地限速触发(%d/分钟)，本条数据未转发', VPS_RATE_LIMIT)
         return False
 
-    body = dict(payload or {})
-    body.setdefault('device_id', VPS_DEVICE_ID)
-    body['channel'] = channel or VPS_CHANNEL
+    # 平台契约（已在实机联调中验证）：POST /api/data 必须把业务字段包在 payload 里，
+    # 扁平字段会被 400 拒绝：{"error": "缺少 payload"}
+    #   请求: {"device_id": "group01_esp32s3eye", "channel": "sensor1", "payload": {"ax": ...}}
+    #   响应: 201 {"id": 12, "channel": "sensor1"}
+    inner = dict(payload or {})
+    body = {
+        'device_id': inner.get('device_id') or VPS_DEVICE_ID,
+        'channel': channel or VPS_CHANNEL,
+        'payload': inner,
+    }
 
     try:
         resp = vps_request('POST', '/api/data', json=body)
@@ -525,9 +532,14 @@ def vps_upload_data(channel, payload):
             _vps['sent'] += 1
             _vps['last_ok_at'] = time.strftime('%Y-%m-%d %H:%M:%S')
             _vps['last_error'] = ''
-        log.info('[VPS] 上传成功 %s channel=%s device=%s ax=%s ay=%s az=%s',
-                 resp.status_code, body['channel'], body.get('device_id'),
-                 body.get('ax'), body.get('ay'), body.get('az'))
+        rec_id = ''
+        try:
+            rec_id = ' id=%s' % (resp.json() or {}).get('id')
+        except Exception:
+            rec_id = ''
+        log.info('[VPS] 上传成功 %s channel=%s device=%s ax=%s ay=%s az=%s%s',
+                 resp.status_code, body['channel'], body['device_id'],
+                 inner.get('ax'), inner.get('ay'), inner.get('az'), rec_id)
         return True
 
     snippet = (resp.text or '')[:200]
@@ -561,21 +573,44 @@ def vps_forward(channel, payload):
         return False
 
 
+def _vps_flatten_record(rec):
+    """平台返回 {id, channel, payload, created_at}，把 payload 内的字段提到顶层，前端与接口统一读取。
+
+    payload 实测可能是 dict（本系统发送的形态）、JSON 字符串或 list（平台原样存储，不做校验），三种都要兜住。
+    """
+    if not isinstance(rec, dict):
+        return rec
+    out = dict(rec)
+    payload = out.get('payload')
+    if isinstance(payload, str):
+        try:
+            payload = json.loads(payload)
+        except Exception:
+            payload = None
+    if isinstance(payload, list):
+        payload = payload[0] if payload and isinstance(payload[0], dict) else None
+    if isinstance(payload, dict):
+        for k, v in payload.items():
+            out.setdefault(k, v)      # 顶层字段（id/channel/created_at）优先，不被 payload 覆盖
+    return out
+
+
 def _vps_extract_records(raw):
-    """兼容 VPS 可能返回的多种 JSON 结构，统一成 list[dict]。"""
+    """兼容 VPS 可能返回的多种 JSON 结构，统一成 list[dict]（payload 已扁平化）。"""
     if isinstance(raw, list):
-        return [r for r in raw if isinstance(r, dict)]
+        return [_vps_flatten_record(r) for r in raw if isinstance(r, dict)]
     if isinstance(raw, dict):
-        for key in ('data', 'records', 'items', 'rows', 'list', 'result'):
+        # 平台实测返回 {"owner","count","next_before","items":[...]}，items 优先
+        for key in ('items', 'data', 'records', 'rows', 'list', 'result'):
             val = raw.get(key)
             if isinstance(val, list):
-                return [r for r in val if isinstance(r, dict)]
+                return [_vps_flatten_record(r) for r in val if isinstance(r, dict)]
             if isinstance(val, dict):
                 inner = _vps_extract_records(val)
                 if inner:
                     return inner
         if any(k in raw for k in ('ax', 'ay', 'az', 'timestamp', 'time', 'created_at')):
-            return [raw]
+            return [_vps_flatten_record(raw)]
     return []
 
 

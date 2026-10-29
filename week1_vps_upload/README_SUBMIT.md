@@ -27,7 +27,7 @@
 
 | 文件 | 变更 |
 |------|------|
-| `server/app.py` | +约 180 行：VPS 客户端（登录 / token 缓存 / 401 重登 / 异步转发）+ 2 个新路由 |
+| `server/app.py` | +约 200 行：VPS 客户端（登录 / token 缓存 / 401 重登 / 异步转发）+ `payload` 封装 + 云端记录扁平化 + 2 个新路由 |
 | `server/templates/index.html` | 顶部 VPS 连接横幅 + `☁️ VPS 云端记录` Tab（表格 / 10s 轮询 / 手动刷新） |
 | `server/.env` | 本地凭据，**已被 .gitignore 忽略，不提交** |
 | `server/.env.example` | 新增并提交，仅含占位符，复制为 `.env` 后填真实凭据 |
@@ -45,7 +45,9 @@
 
 | 行为 | 说明 |
 |------|------|
-| 登录 | `POST {VPS_BASE_URL}/api/login`，JSON `{"username","password"}` |
+| 登录 | `POST {VPS_BASE_URL}/api/login`，JSON `{"username","password"}` → `{"token","expires_in_days":30,"quota_rows":100000,"keep_days":30}` |
+| 上行契约 | `POST {VPS_BASE_URL}/api/data`，JSON `{"device_id","channel","payload":{...}}`；业务字段**必须包在 `payload` 里**（实测扁平字段被 `400 {"error":"缺少 payload"}` 拒绝），成功返回 `201 {"id":N,"channel":"sensor1"}` |
+| 下行契约 | `GET {VPS_BASE_URL}/api/data?limit=N` → `{"owner","count","next_before","items":[{"id","channel","payload","created_at"}]}`，`created_at` 为毫秒时间戳；`payload` 内的字段会被扁平化到记录顶层再交给前端 |
 | Token 缓存 | 默认 30 天（若响应含 `expires_in/ttl` 则以它为准），提前 60s 视为过期 |
 | 认证 | `Authorization: Bearer <token>` |
 | 证书 | VPS 为自签证书 → `verify=False` + 关闭 `InsecureRequestWarning` |
@@ -53,7 +55,7 @@
 | 失败退避 | 登录失败后 30s 内不再重试（`VPS_LOGIN_BACKOFF`），避免 401 刷成请求风暴 |
 | 限速 | 本地 60s 滑动窗口 ≤ 280 条（平台限制 300 条/分钟） |
 | 转发时机 | 仅在 `INSERT` + `commit()` 成功后；`duplicate`（幂等丢弃）与 `EXPIRED` 两个提前返回分支**不转发** |
-| 日志 | `[VPS] 登录成功 token=abc123...wxyz`（打码）、`[VPS] 上传成功 200 ...`、`[VPS] 上传失败 status=...`、`[VPS] token 已失效(401)，重新登录后重试一次` |
+| 日志 | `[VPS] 登录成功 token=abc123...wxyz`（打码）、`[VPS] 上传成功 201 channel=sensor1 device=... ax=... id=N`、`[VPS] 上传失败 status=...`、`[VPS] token 已失效(401)，重新登录后重试一次` |
 
 ### 0.5 新增 API 路由
 
@@ -66,21 +68,22 @@
 
 - **顶部横幅**：`☁️ 已连接 VPS: 123.58.43.162:8443`（绿）／`⚠️ VPS 未连接: ...`（红，附原因），15s 刷新
 - **新 Tab `☁️ VPS 云端记录`**：列 `# / 时间戳 / 设备 / AX / AY / AZ / 通道`，10s 轮询 + `🔄 刷新`
-- 字段名做了兼容映射（`timestamp|time|created_at|server_time|device_time`、`ax|acc_x|x` 等），因为尚未拿到 VPS 真实返回样本
+- 字段映射已按实测返回定稿：`items[].payload`（dict / JSON 字符串 / list 三种形态都能兜住）内的字段扁平化到记录顶层；时间优先取 `created_at`（毫秒）并转本地时间，仍兼容 `timestamp|time|server_time|device_time`、`ax|acc_x|x`
 
 ### 0.7 联调结果（2026-10-29 本地实测）
 
 | 检查项 | 结果 |
 |--------|------|
 | `python -m py_compile app.py` | ✅ 通过 |
-| `GET /` | ✅ 200，页面已含横幅 / Tab / JS |
-| `GET /api/vps_status` | ✅ 200，`configured=true`、`connected=false`，`last_error="login 401 账号或口令错误"` |
-| `POST /api/upload`（模拟设备报文） | ✅ 200 `status=ok`，日志同时出现 `[VPS] 上传失败：VPS 不可达或登录失败 channel=sensor1`（证明异步且不影响设备响应） |
-| `GET /api/vps_history` | ✅ 502 + JSON 错误（凭据 401 期间符合预期） |
-| **VPS 真实上传** | ⚠️ 阻塞：`POST /api/login` 返回 `401 {"error":"账号或口令错误"}`，待老师确认账号/口令 |
+| `POST /api/login`（独立探针） | ✅ 200，拿到 token（响应含 `expires_in_days=30`） |
+| `GET /api/vps_status` | ✅ 200，`configured=true`、`connected=true`、`token_masked=eyJzdW...` |
+| `POST /api/upload`（模拟设备报文，经 `10.1.41.43:5000`） | ✅ 200 `status=ok`，**耗时 27ms**（远低于设备端 3000ms 超时 → 异步生效） |
+| VPS 异步转发 | ✅ `[VPS] 上传成功 201 channel=sensor1 device=group01_esp32s3eye ax=0.01 ay=-0.02 az=1.0 id=10` |
+| `GET /api/vps_history?limit=5` | ✅ 200，`count=4`，首条即刚上报记录：`ax=0.01 ay=-0.02 az=1.0 device_time=2026-10-29 14:00:00` |
 
-> 一旦拿到正确口令：只需修改 `server/.env` 的 `VPS_USERNAME` / `VPS_PASSWORD` 并重启 Flask，**无需改动任何代码**。
-> 届时日志应出现 `[VPS] 登录成功 token=***` 与 `[VPS] 上传成功 200 ...`，`☁️ VPS 云端记录` Tab 即可看到云端数据。
+> 上行必须包 `payload`：第一版按扁平字段发送被平台 `400 {"error":"缺少 payload"}` 拒绝，改为
+> `{"device_id","channel","payload":{...}}` 后返回 `201`，已在代码注释里固化该契约。
+> 本轮只改 `app.py` / `README_SUBMIT.md`，`esp32_firmware/`、`main.c`、COM4 全程未触碰。
 
 ### 0.8 启动
 
