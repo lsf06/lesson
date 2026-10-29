@@ -3,6 +3,11 @@
 > 项目：group01_esp32s3eye | EgoLink DevBench  
 > 日期：2026-10-13  
 > 分支：week13_edge_inference
+>
+> ⚠️ **证据等级声明**：本报告中视觉推理结果为模拟实现（`ENABLE_MOCK_VISION=True`，`model_version=MOCK-V1`），
+> 未接入任何真实模型权重，**不得**作为端侧或云端视觉推理能力的证据；详见 `week8_vision_feedback/README.md` 第 0 节。
+> 第一节测试环境表中「云端 DeepSeek API（未配置 API Key）」意为**云端推理路径实际未跑通**。
+> 第五节启动路径已更正为 `week13_14_15_edge_inference`。
 
 ---
 
@@ -170,9 +175,9 @@
 + JS:  runInference() 增强（source 标签展示）
 ```
 
-### 未修改文件
+### 本次红线修复未修改的文件
 
-- ✅ main.c / esp32_firmware — 零改动
+- ⚠️ main.c — **第 13 周功能改动里已包含设备端阈值规则** `device_infer_accel()`（`esp32_firmware/main/main.c:407`，调用点 `:419`、`:1199`），属于 if/else 阈值判定、**不含任何模型推理**；2026-10-29 红线修复对 main.c 的改动为 **0 字节**（`git diff -- *.c` 输出 0 字符）
 - ✅ COM4 操作 — 零改动
 - ✅ 多源状态 / NLP / 视觉推理 / 上下文引擎 / 偏好系统 — 零改动
 
@@ -181,7 +186,7 @@
 ## 五、启动命令
 
 ```bash
-cd "d:\lesson\xiaolin\lesson-main (1)\lesson-main\week13_edge_inference\server"
+cd "d:\lesson\xiaolin\lesson-main (1)\lesson-main\week13_14_15_edge_inference\server"
 python app.py
 ```
 

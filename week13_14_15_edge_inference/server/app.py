@@ -112,7 +112,8 @@ def init_db():
                 )''')
     # Week14 migration: add delivery/retransmit columns to accelerometer
     for col, col_type in [('original_ts', 'INTEGER'), ('retransmit_ts', 'INTEGER'),
-                          ('delivery_status', "TEXT DEFAULT 'live'")]:
+                          ('delivery_status', "TEXT DEFAULT 'live'"),
+                          ('data_origin', "TEXT DEFAULT 'device'")]:
         try:
             c.execute(f'ALTER TABLE accelerometer ADD COLUMN {col} {col_type}')
         except Exception:
@@ -409,12 +410,17 @@ def upload():
             log.info('Late response ignored: request_id=%s status=%s (raw only)',
                      request_id, existing_status)
 
-    # Always insert into accelerometer (Week14: include original_ts, retransmit_ts, delivery_status)
+    # 数据来源：device=真实设备上传；simulated=测试注入（tools/backfill_fixture.py 等）
+    data_origin = str(data.get('data_origin') or '').strip().lower()
+    if data_origin not in ('device', 'simulated'):
+        data_origin = 'simulated' if data.get('simulated') else 'device'
+
+    # Always insert into accelerometer (Week14: original_ts/retransmit_ts/delivery_status; fix: data_origin)
     try:
         c.execute(
-            'INSERT INTO accelerometer (device_id, ax, ay, az, device_time, server_time, original_ts, retransmit_ts, delivery_status) '
-            'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            (device_id, ax, ay, az, device_time, server_time, original_ts, retransmit_ts, delivery_status)
+            'INSERT INTO accelerometer (device_id, ax, ay, az, device_time, server_time, original_ts, retransmit_ts, delivery_status, data_origin) '
+            'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            (device_id, ax, ay, az, device_time, server_time, original_ts, retransmit_ts, delivery_status, data_origin)
         )
     except Exception:
         # Fallback: columns may not exist yet
@@ -493,7 +499,8 @@ def history():
         count = 500
     conn = get_db()
     rows = conn.execute(
-        'SELECT device_id, ax, ay, az, device_time, server_time '
+        'SELECT device_id, ax, ay, az, device_time, server_time, '
+        'original_ts, retransmit_ts, delivery_status, data_origin '
         'FROM accelerometer ORDER BY id DESC LIMIT ?',
         (count,)
     ).fetchall()
@@ -506,7 +513,11 @@ def history():
             'ay': r['ay'],
             'az': r['az'],
             'device_time': r['device_time'],
-            'server_time': r['server_time']
+            'server_time': r['server_time'],
+            'original_ts': r['original_ts'],
+            'retransmit_ts': r['retransmit_ts'],
+            'delivery_status': r['delivery_status'],
+            'data_origin': r['data_origin']
         })
     result.reverse()  # oldest first
     log.info('History: returned %d records', len(result))
@@ -1032,7 +1043,8 @@ def sensor_history():
     try:
         conn = get_db()
         rows = conn.execute(
-            'SELECT id, device_id, ax, ay, az, device_time, server_time '
+            'SELECT id, device_id, ax, ay, az, device_time, server_time, '
+            'original_ts, retransmit_ts, delivery_status, data_origin '
             'FROM accelerometer ORDER BY id DESC LIMIT ?',
             (count,)
         ).fetchall()
@@ -1046,7 +1058,11 @@ def sensor_history():
                 'ay': r['ay'],
                 'az': r['az'],
                 'device_time': r['device_time'],
-                'server_time': r['server_time']
+                'server_time': r['server_time'],
+                'original_ts': r['original_ts'],
+                'retransmit_ts': r['retransmit_ts'],
+                'delivery_status': r['delivery_status'],
+                'data_origin': r['data_origin']
             })
         result.reverse()
         return jsonify({'success': True, 'data': result})
@@ -1157,11 +1173,17 @@ def api_capture_image():
             with open(latest_path, 'rb') as f:
                 raw = f.read()
             img_b64 = base64.b64encode(raw).decode('utf-8')
-            log.info('Capture: returning recent ESP32 image (age=%.1fs)', age)
+            mtime = os.path.getmtime(latest_path)
+            captured_at = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(mtime))
+            # Week7 red-line fix: a cached frame must never be reported as a live capture.
+            log.warning('Capture: recent cached image (age=%.1fs), NOT live', age)
             return jsonify({
-                'success': True,
-                'image': f'data:image/jpeg;base64,{img_b64}',
-                'source': 'esp32_camera'
+                'success': False,
+                'error': f'等待新图超时，当前仅有 {age:.1f}s 前的缓存图',
+                'source': 'recent_cache',
+                'captured_at': captured_at,
+                'age_seconds': round(age, 1),
+                'image': f'data:image/jpeg;base64,{img_b64}'
             })
 
     # 2b. No recent image → create a pending capture request for ESP32

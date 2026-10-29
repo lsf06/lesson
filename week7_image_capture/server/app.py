@@ -869,16 +869,24 @@ def api_capture_image():
     # ============== Channel 2: Browser call ==============
     # 2a. Check if a recent captured image already exists (< 30s old)
     if os.path.isfile(latest_path):
-        age = time.time() - os.path.getmtime(latest_path)
+        mtime = os.path.getmtime(latest_path)
+        age = time.time() - mtime
         if age < 30:
             with open(latest_path, 'rb') as f:
                 raw = f.read()
             img_b64 = base64.b64encode(raw).decode('utf-8')
-            log.info('Capture: returning recent ESP32 image (age=%.1fs)', age)
+            captured_at = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(mtime))
+            # 第7周红线修复：缓存图不得冒充本次采集。
+            # 旧实现返回 success=True + source=esp32_camera，前端会打出
+            # 📷 实时拍摄（ESP32-CAM）绿色徽章，属于虚假证据。
+            log.warning('Capture: recent cached image (age=%.1fs), NOT live', age)
             return jsonify({
-                'success': True,
-                'image': f'data:image/jpeg;base64,{img_b64}',
-                'source': 'esp32_camera'
+                'success': False,
+                'error': f'等待新图超时，当前仅有 {age:.1f}s 前的缓存图',
+                'source': 'recent_cache',
+                'captured_at': captured_at,
+                'age_seconds': round(age, 1),
+                'image': f'data:image/jpeg;base64,{img_b64}'
             })
 
     # 2b. No recent image → create a pending capture request for ESP32

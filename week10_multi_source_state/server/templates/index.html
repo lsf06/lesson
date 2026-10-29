@@ -130,6 +130,7 @@
         .image-area .source-badge{position:absolute;top:6px;right:6px;padding:2px 8px;border-radius:4px;font-size:.7em;font-weight:700;background:rgba(0,0,0,.7);color:var(--green);z-index:2}
         .image-area .source-badge.fallback{color:var(--orange)}
         .image-area .capture-error{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--red);font-size:.82em;text-align:center;padding:12px}
+        .image-area .cache-warning{position:absolute;bottom:0;left:0;right:0;background:rgba(220,38,38,.92);color:#fff;font-size:.78em;font-weight:700;text-align:center;padding:6px;z-index:3}
         .image-area.visible{display:flex;align-items:center;justify-content:center}
     
         /* ─── Tab Navigation ─────────────────────────── */
@@ -796,6 +797,25 @@ function captureImage(retriesLeft) {
         return r.json();
     })
     .then(function(data) {
+        // Week7 red-line fix: a cached frame must never be reported as a live capture
+        if (data && data.source === 'recent_cache' && data.image) {
+            area.innerHTML = '';
+            area.className = 'image-area visible';
+            var cimg = document.createElement('img');
+            cimg.src = data.image;
+            cimg.alt = 'cached image';
+            area.appendChild(cimg);
+            var warn = document.createElement('div');
+            warn.className = 'cache-warning';
+            warn.textContent = '⚠️ 非本次采集：这是 ' + (data.captured_at || '未知时间') + ' 的缓存图片 (' + (data.age_seconds != null ? data.age_seconds : '?') + 's 前)';
+            area.appendChild(warn);
+            lastCapturedImageUrl = null;
+            badge.textContent = '⚠️ 历史缓存';
+            badge.style.color = 'var(--orange)';
+            status.className = 'cam-status error';
+            status.textContent = '⚠️ 采集超时：当前展示为历史缓存，非本次实时拍摄';
+            return;
+        }
         if (data && data.success && data.image) {
             area.innerHTML = '';
             area.className = 'image-area visible';
