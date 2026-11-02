@@ -203,6 +203,16 @@ static void wifi_init(void)
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_cfg));
     ESP_ERROR_CHECK(esp_wifi_start());
 
+    /* Brownout mitigation (2026-11-02, week14 bench test):
+     * this ESP32-S3-EYE browns out on Wi-Fi TX bursts when powered from a weak
+     * USB port/cable -- serial shows "E BOD: Brownout detector was triggered"
+     * and the board reboots in a loop, which never connects and would make the
+     * offline-cache/retransmit test impossible. Capping the max TX power at
+     * 8 dBm (32 = 8/0.25 dBm units, chip max is 78 = 19.5 dBm) cuts the peak
+     * current; 8 dBm is plenty for a lab AP a few metres away. Raise it back to
+     * 78 if range matters more than supply stability. */
+    ESP_ERROR_CHECK(esp_wifi_set_max_tx_power(32));
+
     ESP_LOGI(TAG, "Wi-Fi init done, connecting to %s...", WIFI_SSID);
 }
 

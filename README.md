@@ -1383,6 +1383,42 @@ python app.py
 - [x] 前端显示「离线恢复」延迟徽章
 - [x] `esp_task_wdt_reset()` 防止 HTTP 超时触发看门狗复位
 
+### 5.1 实机验证记录（2026-11-02 10:37–10:39，COM4）
+
+> 证据文件（本地，`/evidence/` 与 `*.log` 已被 `.gitignore` 忽略）：`evidence/week14/serial_week14.log`、`serial_retransmit_excerpt.txt`、`flask_week14.log`、`db_check.txt`、`sensor_history_week14.txt`。
+
+**先说两个挡路的坑**（与续传逻辑无关，但极易被误读成"补传没生效"）
+
+| 现象 | 根因 | 处置 |
+|------|------|------|
+| `esptool` 报 `PermissionError(13, '拒绝访问')` / `Could not open COM4` | COM4 被上一轮的 `idf.py monitor` 一直持有（该 monitor 的日志 10:05 后就没再写行，进程却在跑） | 结束该 monitor 释放端口；烧录改用 `evidence/week14/flash_usb.ps1`，按 `--before=default_reset → no_reset → usb_reset` 三种策略重试 |
+| 串口每 10 s 一条 `E BOD: Brownout detector was triggered`，永远连不上 Wi-Fi | 板子在 Wi-Fi 发射瞬间掉压复位（换后置 USB 口 + 粗线后仍复现），与固件逻辑无关 | `main.c` 在 `esp_wifi_start()` 后加 `esp_wifi_set_max_tx_power(32)`（8 dBm）降低峰值电流；修复后连续 4 分钟 **0 条 BOD**，Wi-Fi 一次连上 |
+
+> 另一条坑：`idf.py monitor` 在 ESP32-S3 **原生 USB（USB-Serial-JTAG）** 上会因 DTR/RTS 触发芯片复位 → `ClearCommError (PermissionError 13)` → monitor 重连 → 再复位，形成死循环。本次改用 `evidence/week14/serial_capture.py`（`open()` 前设 `dtr=False/rts=False`，纯只读，不碰控制线）抓串口，稳定无复位。
+
+**时间线（串口 + `flask.log` + DB 三方对齐）**
+
+| 时间 | 事件 | 证据 |
+|------|------|------|
+| 10:37:04 | Flask 停机，设备 5 次轮询失败后转入本地缓存 | 串口 `Server unreachable (5 consecutive failures), collecting for local cache (queue=1/90)` |
+| 10:37:04–10:38:33 | 断网窗口 **89 s**，逐秒入队，峰值 `queue=23/90`（未触顶，无环形覆盖丢帧） | 串口 23 行 `Cached locally (queue=n/90)`，n=1…23 |
+| 10:38:33 | 重启 `python app.py`（服务端在线） | `flask.log` 恢复记录请求 |
+| 10:38:36 | 检测到服务端恢复，开始批量补传 | 串口 `RETRANSMIT: sending 23 cached records` |
+| 10:38:36–10:38:51 | 23 条逐条补传完毕，队列清零 | 串口 `RETRANSMIT done: 23/23 records sent, 0 remain in queue`；服务端 `Upload: detected RECOVERED delivery (delay=51s)` / `delivery=recovered` |
+| 10:38:51 之后 | 回到 1 Hz 实时上传 | 串口持续 `Poll response (22 bytes): {"has_request":false}` |
+
+**DB 核对（表 `accelerometer`，`delay = retransmit_ts - original_ts`）**
+
+| id | original_ts | retransmit_ts | delay | delivery_status | 说明 |
+|----|-------------|---------------|-------|-----------------|------|
+| 16 | 10:37:04 | 10:38:36 | **92 s** | `recovered` | 断网最早一条 |
+| 24 | 10:37:36 | 10:38:43 | 67 s | `recovered` | 中间段 |
+| 34 | 10:38:17 | 10:38:48 | **31 s** | `recovered` | 刚好越过 30 s 阈值 |
+| 35 | 10:38:21 | 10:38:48 | 27 s | `live` | ≤30 s，按 `app.py:359-363` 仍算 `live` |
+| 36–38 | 10:38:25–10:38:33 | 10:38:49/50 | 24 / 20 / 17 s | `live` | 同上 |
+
+**结论**：23 条缓存 = **19 条 `recovered`（delay 31–92 s）+ 4 条 `live`（delay 17–27 s）**，与服务端"`delay > 30 s` 才判 recovered"的规则完全吻合（不是丢数据）；`/api/sensor_history?count=60` 返回同样的 `delivery_status / original_ts / retransmit_ts`，前端数据表可直接标出「📦 补传」。修复发射功率后未再出现 BOD，入队 23 条、出队 23 条，无丢失。
+
 ---
 
 ### 文件清单
