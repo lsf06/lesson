@@ -450,7 +450,7 @@ GET /api/vps_history -> HTTP 401 in 0.026317s
 - `week17_migration_and_fix/README.md`（全文重写 + 计数口径说明）
 - `week18_final_acceptance/README.md`（VPS / tag / 补传标签；`:16` 改为「引用 week1 0.7 记录、本次未复验、仅 401 探活」）
 
-**版本**：本地 tag `v1.0-final`（当时 **未 push**；**2026-11-02 已 push 远端**，tag 指向 `ac4170b`）。本轮为审计后的补充取证，改动量：`git diff --stat HEAD` = 8 个后端 +44 -19，无前端改动。
+**版本**：本地 tag `v1.0-final`（当时 **未 push**；**2026-11-02 已 push 远端**，指向本次文档收尾的最终提交）。本轮为审计后的补充取证，改动量：`git diff --stat HEAD` = 8 个后端 +44 -19，无前端改动。
 
 ---
 
@@ -466,7 +466,7 @@ GET /api/vps_history -> HTTP 401 in 0.026317s
 
 **仍未关闭的**：tag/commit **只在本地，未 push**（按要求保持）。
 
-> **2026-11-02 更新**：上述唯一未关闭项已关闭——commit（`10d0113` → `ac4170b`）与 tag `v1.0-final` 均已 push 到 `origin`，`git status -sb` 显示 `## main`（0 ahead / 0 behind）。
+> **2026-11-02 更新**：上述唯一未关闭项已关闭——`main` 分支与 tag `v1.0-final` 均已 push 到 `origin`；`git rev-parse 'v1.0-final^{}'` 与 `HEAD` 相同，`git status -sb` 显示 `## main`（0 ahead / 0 behind）。
 
 ---
 
