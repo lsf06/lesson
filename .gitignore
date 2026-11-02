@@ -61,6 +61,9 @@ week7_image_capture/esp32_firmware/managed_components/
 # ESP32-CAM embedded git (use submodule or keep detached)
 week7_image_capture/esp32_firmware/components/esp32-camera/
 
+# 2026-11-02: week13/14/15 复用同一份本地 esp32-camera 组件（3.7MB，不入库）
+week13_14_15_edge_inference/esp32_firmware/components/esp32-camera/
+
 # AI 助手本地缓存（不追踪）
 .workbuddy/
 

@@ -144,29 +144,63 @@ idf.py -p COM4 flash monitor
                                                              │   index.html          │
                                                              │   (前端 500ms 轮询)    │
                                                              │                       │
-                                                             │   🔴 本地触发          │
+                                                             │   🟠 本地触发(转瞬)    │
                                                              │   🟢 远端已确认        │
-                                                             │   ⚪ 已取消 / 待机     │
+                                                             │   🔴 已取消 / ⚪ 待机    │
                                                              └───────────────────────┘
 ```
 
 ### 2. 按键触发流程
 
-| 步骤 | 操作 | HTTP 请求 | 前端状态 | 指示灯 |
-|------|------|-----------|----------|--------|
-| **1** | 按下 GPIO0 (BOOT) 键 | `POST /api/trigger` | **本地触发** / 等待确认 | 🟠 橙色闪烁 |
-| **2** | 服务器收到事件 → 写入 trigger_events → ACK | 返回 `200 {"ack": true}` | **远端已确认** | 🟢 绿色发光 |
-| **3** | 再次按下 GPIO0 (BOOT) 键 | `POST /api/cancel` | **已取消** | 🔴 红色 |
-| **4** | 无事件 / 初始状态 | — | **待机** | ⚪ 灰色 |
+| 步骤 | 操作 | HTTP 请求 | 固件状态 | **LCD 全屏实际颜色**（2026-11-02 实物实测） | 网页角标 |
+|------|------|-----------|----------|------------------------------------------|----------|
+| **1** | 按下 GPIO0 (BOOT) 键 | `POST /api/trigger` | `LOCAL_TRIGGERED` | **红** `0xF800`（按下立即） | 尚未刷新（仍是上一次的角标） |
+| **2** | 服务器写入 `trigger_events` 并 ACK | 返回 `200 {"ack": true}` | `REMOTE_ACKED` | **绿** `0x07E0`（约 0.4 s 后） | 🟢 绿点发光「按键: 远端已确认」 |
+| **3** | 再次按下 GPIO0 (BOOT) 键 | `POST /api/cancel` | `IDLE` | **白** `0xFFFF`（按下立即） | 🔴 红点「按键: 已取消」 |
+| **4** | 服务端不可达，ACK 超时（5 s） | 无（TCP 连接失败） | `CANCELLED` | **黄** `0xFFE0`（超时后） | 不变（服务端无记录，页面无从刷新） |
+| **5** | 无事件 / 初始状态 | — | `IDLE` | **白** `0xFFFF` | ⚪ 灰点「按键: 待机」 |
+
+> **⚠️ 两个容易误判的实机细节（2026-11-02 真机复验结论）**
+> 1. **网页永远不会显示橙色「本地触发」**：`/api/trigger` 在**同一次请求**里就写入 `REMOTE_ACKED` 并返回 ACK（`week3_key_feedback/server/app.py:319-333`），前端 500 ms 轮询取到时已经是绿色。因此"红屏→等待确认"这一瞬间的证据只能取 **LCD 实物 + 串口 `LOCAL_TRIGGERED` 行**，不能靠网页。
+> 2. **黄色 ≠ 用户取消**：用户主动取消时固件立刻变白（`IDLE`）并 POST `/api/cancel`；`CANCELLED` 状态只出现在 **ACK 超时**（`main.c:688-693`）。此时服务端根本没收到这次事件，`trigger_events` 里**不会**有这条记录，`cancelled_at` 也不会被写。
 
 ### 3. 状态定义
 
-| status | 含义 | 点亮颜色 |
-|--------|------|----------|
-| `IDLE` | 无事件 | 灰色 `#8b949e` |
-| `LOCAL_TRIGGERED` | 按键已按下但未收到服务器确认 | 橙色 `#d2991d`（闪烁） |
-| `REMOTE_ACKED` | 服务器已确认收到触发 | 绿色 `#3fb950`（发光） |
-| `CANCELLED` | 用户取消了本次触发 | 红色 `#f85149` |
+| status | 含义 | LCD 全屏颜色（2026-11-02 实物实测） | 备注 |
+|--------|------|--------------------------------|------|
+| `IDLE` | 无事件 | **白** `0xFFFF` | 上电默认 / 用户取消后 |
+| `LOCAL_TRIGGERED` | 按键已按下但未收到服务器确认 | **红** `0xF800` | 只在 HTTP 往返的几百毫秒内可见 |
+| `REMOTE_ACKED` | 服务器已确认收到触发 | **绿** `0x07E0` | 常驻，直到再次按键 |
+| `CANCELLED` | ACK 超时（5 s 无响应） | **黄** `0xFFE0` | 仅"断网/服务端不可达"；用户主动取消**不会**进入此状态 |
+
+> 网页上的角标颜色是另一套语义（`index.html` CSS）：`IDLE` 灰 `#8b949e`、`LOCAL_TRIGGERED` 橙 `#d2991d` 闪烁、`REMOTE_ACKED` 绿 `#3fb950` 发光、`CANCELLED` 红 `#f85149`。因服务端在同一请求内就 ACK，橙色几乎不可能在网页上被看到。
+
+### 3.1 实机验证记录（2026-11-02 10:01–10:03，COM4）
+
+日志：`evidence/week03/serial_key.log`（PowerShell `Tee-Object` 写出，UTF-16LE）；板子 IP `10.1.41.149`，服务端 `10.1.41.43:5000`。
+
+| 绝对时间 | 开机相对 | 串口/日志证据 | LCD | 说明 |
+|---|---|---|---|---|
+| 10:01:02 | 0 s | `Week3: button_task(8192) + trigger_http_task(8192) created` | 白 | 烧录后复位，联网成功 |
+| 10:02:40 | 98.2 s | `BUTTON: TRIGGER event_id=20261102_100240_8E4C LCD=TRIGGERED` | 白→**红** | 按键 |
+| 10:02:40 | 98.6 s | `TRIGGER response: {"ack":true,...}` → `HTTP: REMOTE_ACKED` | 红→**绿** | 服务端 **0.42 s** 内 ACK |
+| 10:03:02 | 119.7 s | `BUTTON: CANCEL event_id=...8E4C LCD=IDLE` | 绿→**白** | 再按（服务端已于 10:02:57 停止） |
+| 10:03:07 | 124.7 s | `CANCEL: HTTP open failed: ESP_ERR_HTTP_CONNECT (0x7002)` | 白 | 取消请求**未到达**服务端 |
+| 10:03:08 | 126.0 s | `BUTTON: TRIGGER event_id=20261102_100308_9977` | 白→**红** | 断网测试按键 |
+| 10:03:13 | 131.1 s | `HTTP: NO_ACK` / `NETWORK_TIMEOUT_NO_ACK` | 红→**黄** | 连接失败，约 5 s 后判超时 |
+
+**数据库核对**（`week3_key_feedback/server/sensor_data.db` → `trigger_events`）
+
+| event_id | status | created_at | acknowledged_at | cancelled_at | 判定 |
+|---|---|---|---|---|---|
+| `20261102_100240_8E4C` | `REMOTE_ACKED` | 10:02:40 | 10:02:40 | `NULL` | ✅ 正确：取消请求因服务端已停未到达，`cancelled_at` 本就不该有值 |
+| `20261102_100308_9977` | 无记录 | — | — | — | ✅ 正确：断网事件从未到达服务端，表里只存"服务端看到的事实" |
+
+> **取消路径的取证需要服务端在线**：再跑一次 30 秒即可——按 BOOT（白→红→绿）→ 立刻再按（→白）→ `flask.log` 出现 `Cancel: event_id=... rows_affected=1`，DB 该行变为 `CANCELLED` 且 `cancelled_at` 非空（与 2026-09-30 的历史记录一致）。
+
+**两条待观察项（不影响第 3 周验收）**
+- `task_wdt: Task watchdog got triggered` ×2：只发生在 HTTP 连接失败阻塞的那 5 s 内，**未复位**，属告警；
+- `E BOD: Brownout detector was triggered` ×4（日志尾部）：USB 供电瞬时跌落。第 14 周测试更久、Wi-Fi 发射更密集，建议改用**带外部供电的 USB Hub 或主板后置 USB 口**，避免中途复位污染补传数据。
 
 ### 4. API 接口
 
@@ -1306,7 +1340,7 @@ python app.py
 │   传感器采集          │                              │   delivery_status     │
 │                      │         Wi-Fi 断线时         │   = 'live'           │
 │   ┌────────────────┐ │                              │                      │
-│   │ 环形缓冲区(20条)│ │                              │   Wi-Fi 恢复后         │
+│   │ 环形缓冲区(90条)│ │                              │   Wi-Fi 恢复后         │
 │   │ 缓存+时间戳     │ │ ──── 批量续传 (recovered) ──▶│   delivery_status     │
 │   └────────────────┘ │                              │   = 'recovered'       │
 └──────────────────────┘                              └──────────────────────┘
@@ -1316,7 +1350,7 @@ python app.py
 
 | 组件 | 说明 |
 |------|------|
-| **环形缓冲区** | `CACHE_QUEUE_SIZE=20`，`cache_record_t` 结构体存储 ax/ay/az/device_time |
+| **环形缓冲区** | `CACHE_QUEUE_SIZE=90`，`cache_record_t` 结构体存储 ax/ay/az/device_time；90 条 @1 Hz ≈ 90~100 s 离线窗口（约 8 KB RAM）。**必须大于服务端 `recovered` 判定阈值 30 s**，否则记录会被环形覆盖、补传时 `delay` 全部 < 30 s，被误标为 `live` |
 | **缓存互斥锁** | `g_cache_mutex` FreeRTOS 信号量保护并发访问 |
 | **自动续传** | `retransmit_cached_records()` → WiFi 恢复后逐条重传缓存数据 |
 | **时间戳回退** | `get_valid_timestamp()` → SNTP 未同步时回退到编译时间（`__DATE__`） |
@@ -1342,7 +1376,7 @@ python app.py
 
 ### 5. 验证清单
 
-- [x] 环形缓冲区缓存最多 20 条离线数据
+- [x] 环形缓冲区缓存最多 90 条离线数据（≈90 s，覆盖服务端 30 s 的 `recovered` 判定阈值）
 - [x] WiFi 断线时数据写入缓冲区不丢失
 - [x] WiFi 恢复后自动批量续传（标记 `recovered`）
 - [x] 前端显示「离线恢复」延迟徽章

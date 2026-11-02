@@ -88,8 +88,13 @@ static trigger_state_t trigger_state = TRIG_STATE_IDLE;
 static char *current_event_id = NULL;     /* heap-allocated, NULL when idle */
 static bool sntp_synced = false;          /* set by SNTP callback */
 
-/* ====== Week14: Offline cache + retransmission ring buffer ====== */
-#define CACHE_QUEUE_SIZE    20
+/* ====== Week14: Offline cache + retransmission ring buffer ======
+ * 队列深度必须显著大于服务端判定 recovered 的阈值（app.py: delay > 30s），
+ * 否则环形缓冲会先覆盖掉最老的记录：离线 1 条/秒时，20 条只能保住 ~20s，
+ * 补传时所有记录 delay 都 < 30s，会被一律判成 'live'，"旧数据冒充实时"。
+ * 90 条 ≈ 90~100s 的离线窗口（约 8KB RAM），既够 60s 断网测试，也不会无限堆积。
+ */
+#define CACHE_QUEUE_SIZE    90
 typedef struct {
     float ax, ay, az;
     char  time_str[32];
