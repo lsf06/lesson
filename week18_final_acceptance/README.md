@@ -76,7 +76,7 @@
 | 1 | 提交"部署入口"（VPS） | **已通过本地中转成功接入公网 VPS**（VPS `123.58.43.162:8443`；同机 `flask.log` 有 39 条 `POST /api/data → 201`，`id=10–48`，且 `GET /api/data → count=42`；**本次未起 Flask 复跑**）；**Web 控制台未上公网**，仍是局域网地址，无域名/TLS 反代 | `week1_vps_upload/README_SUBMIT.md` 0.7 节；`GET /api/vps_status` |
 | 10 | 真实定位源 | 无 GNSS 硬件，只有回放数据（已在系统内如实标注） | `source_states` 第 4 行 |
 | 16 | 两轮可比较的原始记录 | 仅 2 人同伴测试，无录屏、无埋点；报告中所称"串口日志记录了 `Cached locally` / `RETRANSMIT`"——**该串口日志未归档，仓库内无法核验** | `week16_usability_test/README.md` |
-| 18 | 源码与版本说明 | **已补打本地 tag `v1.0-final`**（2026-10-29，未 push）；仍无 VERSION 文件 | `git tag -l` |
+| 18 | 源码与版本说明 | **已补打本地 tag `v1.0-final`**（2026-10-29 补打，**2026-11-02 已 push 远端**）；仍无 VERSION 文件 | `git tag -l` |
 
 ---
 

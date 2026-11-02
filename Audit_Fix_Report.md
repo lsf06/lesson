@@ -387,7 +387,7 @@ GET /api/vps_history -> HTTP 401 in 0.026317s
 - `:16` → 「其中 `POST /api/data → 201 (id=10)`、`GET /api/data → count=4` 为**引用** week1 0.7 节的既有记录，**本次审计未复验**（仓库内无 `.env`）；本次只做**未鉴权只读探活**：`GET /api/vps_history → 401`（26ms，说明服务在线且要求 Bearer）；**Web 控制台仍只跑本机局域网**，无域名/无生产级 TLS/无 gunicorn+nginx+systemd」。
 - `:76` → 第1周「数据面已通，Web 未上公网」。
 - `:89` → 「**VPS 仅覆盖数据面**」，仍不能宣称 Web 公网可用。
-- `:79` / `:103` → 已补打本地 tag `v1.0-final`（不 push），此项销账。
+- `:79` / `:103` → 已补打本地 tag `v1.0-final`（当时注明不 push；**2026-11-02 已 push 远端**），此项销账。
 - `:101` → 改为「注入验证已过、实物复测仍缺」。
 
 ---
@@ -450,7 +450,7 @@ GET /api/vps_history -> HTTP 401 in 0.026317s
 - `week17_migration_and_fix/README.md`（全文重写 + 计数口径说明）
 - `week18_final_acceptance/README.md`（VPS / tag / 补传标签；`:16` 改为「引用 week1 0.7 记录、本次未复验、仅 401 探活」）
 
-**版本**：本地 tag `v1.0-final`（**未 push**）。本轮为审计后的补充取证，改动量：`git diff --stat HEAD` = 8 个后端 +44 -19，无前端改动。
+**版本**：本地 tag `v1.0-final`（当时 **未 push**；**2026-11-02 已 push 远端**，tag 指向 `ac4170b`）。本轮为审计后的补充取证，改动量：`git diff --stat HEAD` = 8 个后端 +44 -19，无前端改动。
 
 ---
 
@@ -465,6 +465,8 @@ GET /api/vps_history -> HTTP 401 in 0.026317s
 | **E** VPS 表述 | `week18_final_acceptance/README.md:16` 已写明「201/id=10/count=4 引用 week1 0.7 节记录，本次仅 401 探活、未复验鉴权后接口」 | §5.2、§5.3 | 第 V 段 `w18-16` 检查 |
 
 **仍未关闭的**：tag/commit **只在本地，未 push**（按要求保持）。
+
+> **2026-11-02 更新**：上述唯一未关闭项已关闭——commit（`10d0113` → `ac4170b`）与 tag `v1.0-final` 均已 push 到 `origin`，`git status -sb` 显示 `## main`（0 ahead / 0 behind）。
 
 ---
 
