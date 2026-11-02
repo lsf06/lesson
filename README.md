@@ -86,6 +86,20 @@ idf.py -p COM4 flash monitor
 | 采样间隔 | `main.c` | 默认 1000ms |
 | 服务器端口 | `app.py` | 默认 5000 |
 
+### ✅ 实机复验（2026-11-02）
+
+> 详细台账：`evidence/week07/REAL_DEVICE_20261102.md`（`/evidence/` 已在 `.gitignore:69` 忽略，仅本地留证）
+
+| 项 | 实测值 |
+|---|---|
+| 板端 IP | `10.1.41.149`（`WiFi connected!` 3.6 s，`Got IP` 4.7 s） |
+| 上传 | `POST /api/upload` → **200**，`Upload: device=group01_esp32s3eye ax=-0.800 ay=0.680 az=-1.030` |
+| 入库 | `accelerometer` 新增 id=37，`device_time = server_time = 2026-11-02 09:31:51` |
+| 稳定性 | `STATS: ok=1 fail=0 sensor_err=0`，串口无 `E (...)` 错误行 |
+
+> 口径说明：本次实机跑的是第 7 周固件，传感器上传由「请求采集」触发（`main.c:927`），**不是定时周期上传**；第 1 周的“周期性上传”由 `week1_periodic_upload/` 固件负责，本轮未单独烧录验证。
+
+**一段话结论**：上电 3.6 s 连上 `431`、4.7 s 拿到 `10.1.41.149`，与服务端记录的 `request.remote_addr` 完全一致；`POST /api/upload` 返回 **200**（`app.py:191`，不是 201），单轮统计 `STATS: ok=1 fail=0 sensor_err=0`，串口 0 条 `E (...)` 错误行（唯一 1 条 `W (...)` 是 flash size 提示）。
 
 ---
 
@@ -93,6 +107,17 @@ idf.py -p COM4 flash monitor
 
 > **对应目录**: `week2_request_collection/`
 > **说明**: 第2周的核心功能（request_id 闭环、采集请求轮询）已在第1周的基础上实现，并作为基础架构被后续所有周次（第3-8周）复用。因此本目录无独立 README，该部分内容分散在各周的 API 设计（`/api/pending_request`、`/api/request_collection`）和硬件轮询逻辑中。如需了解详情，请参考第3周及后续周次的系统架构和 API 章节。
+
+### ✅ 实机复验（2026-11-02）
+
+| 环节 | 实测证据 |
+|---|---|
+| 网页发起 | `POST /api/request_collection` → 200，`request_id=20261102_093151_988A69` |
+| 板端取到 | `I (23824) MAIN: Poll: received request_id=20261102_093151_988A69` |
+| 带 id 回传 | `I (23984) MAIN: UPLOAD HTTP 200 OK`（请求→上传 **160 ms**，payload 含 `request_id`） |
+| 闭环落库 | `collection_requests.status=COMPLETED`、`completed_at=2026-11-02 09:31:51`；`accelerometer.id=37` 同秒写入 |
+
+**一段话结论**：2026-11-02 09:31:51 网页发起 `20261102_093151_988A69` → 板端轮询取到后 **160 ms** 内带 `request_id` 回传 `HTTP 200`（ax=-0.80 / ay=0.68 / az=-1.03）→ 服务端同秒写 `accelerometer` id=37 并把该请求置 `COMPLETED`，`completed_at` 与采样时间同为 `2026-11-02 09:31:51`，构成「网页发起→板端执行→带 id 回传→落库闭环」的完整证据链。
 
 ---
 
@@ -454,6 +479,24 @@ function captureImage() {
 | 降级测试 | ESP32 不可达 | 显示预存图片 + 橙色标记 |
 | 防作弊测试 | 遮挡摄像头→拍照 | 失败时旧图消失 |
 
+### 6. 实机复验（2026-11-02，COM4 / 10.1.41.149）
+
+> 详细台账（串口原文、DB 前后对比、图片指纹）：`evidence/week07/REAL_DEVICE_20261102.md`
+
+| 环节 | 实测证据 |
+|---|---|
+| 摄像头初始化 | `Detected OV2640 camera` → `Camera OV2640 initialized: QVGA JPEG PSRAM`（上电 7.8 s） |
+| 网页发起拍照 | `POST /api/capture_image` → `Capture pending request created: id=20261102_093207_B693B2` |
+| 板端执行 | `Action = capture, taking photo...` → `Captured JPEG: 9434 bytes` |
+| 上传回执 | `CAPTURE: HTTP 200`（拍照→上传 **210 ms**）；服务端同步记录 `POST /api/capture_image` 200 from `10.1.41.149` |
+| 服务端落盘 | `Image saved from ESP32: capture_20261102_093209.jpg (9434 bytes)`；`Capture: ESP32 image received after 0.4s (attempt 2)` |
+| 文件校验 | 9,434 B；JPEG SOI `ffd8` / EOI `ffd9` 完整；SHA256 `FA2DA623…B8790885`；`captured_images` 新增 id=22 |
+| 防作弊 | 请求发出前清空 `image-area` 并置 `lastCapturedImageUrl=null`；服务端按 mtime < 2 s 判定为新图，无旧图复用 |
+
+**一段话结论**：2026-11-02 09:32:07 网页发起拍照 → 板端约 1.9 s 后拍到 **9,434 B** JPEG（OV2640 QVGA / PSRAM）→ **210 ms** 内 `POST /api/capture_image` 收到 `CAPTURE: HTTP 200` → 服务端落盘 `capture_20261102_093209.jpg`（`captured_images` id=22）并把新图回显给页面；文件头尾 **SOI `FF D8` / EOI `FF D9`** 完整、SHA256 `FA2DA623…B8790885`，可证明是本次新拍而非复用 `latest.jpg` 缓存。
+
+**本机联调中发现的 P3 已修复（2026-11-02）**：原 `/api/capture_image` 成功落盘后没有把对应 `collection_requests` 置 `COMPLETED`，请求停在 `RECEIVED`，随后被 `_check_timeouts()`（`app.py:111-125`，阈值 5 s）刷成 `TIMEOUT`，状态图与统计口径全错。修复后：ESP32 上传的 JPEG 落盘成功后，服务端在同一事务里把该设备最新一条未完成的 `capture` 请求置 `COMPLETED` 并写 `completed_at`（若固件改为带 `?request_id=` 或 `X-Request-Id`，则精确匹配该条）。重启服务后真机复验：`20261102_095205_387D45` 创建于 09:52:05，09:52:06 完成（日志 `Capture: collection_requests COMPLETED (matched=1)`），库内状态 `COMPLETED`、`completed_at=2026-11-02 09:52:06`，不再被误判超时。
+
 ---
 
 ## 第8周：视觉推理与人工反馈 (Vision Feedback)
@@ -557,6 +600,14 @@ CREATE TABLE vision_results (
 | **服务器 IP** | `10.1.41.43:5000` |
 | **IDF 版本** | ESP-IDF v5.4.4 |
 | **设备 ID** | `group01_esp32s3eye` |
+
+### 遗留说明（不影响本次验收）
+
+| 项 | 现象 | 影响 | 处置 |
+|---|---|---|---|
+| flash size 配置 | `sdkconfig` 中 `CONFIG_ESPTOOLPY_FLASHSIZE="2MB"`，实际模组 8 MB，启动多一条 `W (…) Flash size …` 提示 | 当前 app 1.04 MB、分区余量 29%，远未触顶，功能无影响 | 暂不改；后续可切 `CONFIG_ESPTOOLPY_FLASHSIZE_8MB` 重烧消除告警 |
+| 历史请求状态 | P3 修复前产生的拍照请求（如 `20261102_093207_B693B2`）仍为 `RECEIVED`，会被超时检查刷成 `TIMEOUT` | 仅影响历史行展示，修复后的新请求均正常 `COMPLETED` | 保留原始记录作为 P3 现场证据，不回填 |
+| 证据留存位置 | 详细台账在 `evidence/week07/REAL_DEVICE_20261102.md`，但 `/evidence/` 被 `.gitignore:69` 忽略 | 远程仓库看不到台账原文 | 关键数据（9,434 B、SOI/EOI、160 ms/210 ms）已浓缩进本文各周「一段话结论」 |
 
 
 ---
