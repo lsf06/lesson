@@ -1392,7 +1392,7 @@ python app.py
 | 现象 | 根因 | 处置 |
 |------|------|------|
 | `esptool` 报 `PermissionError(13, '拒绝访问')` / `Could not open COM4` | COM4 被上一轮的 `idf.py monitor` 一直持有（该 monitor 的日志 10:05 后就没再写行，进程却在跑） | 结束该 monitor 释放端口；烧录改用 `evidence/week14/flash_usb.ps1`，按 `--before=default_reset → no_reset → usb_reset` 三种策略重试 |
-| 串口每 10 s 一条 `E BOD: Brownout detector was triggered`，永远连不上 Wi-Fi | 板子在 Wi-Fi 发射瞬间掉压复位（换后置 USB 口 + 粗线后仍复现），与固件逻辑无关 | `main.c` 在 `esp_wifi_start()` 后加 `esp_wifi_set_max_tx_power(32)`（8 dBm）降低峰值电流；修复后连续 4 分钟 **0 条 BOD**，Wi-Fi 一次连上 |
+| 串口每 10 s 一条 `E BOD: Brownout detector was triggered`，永远连不上 Wi-Fi | 板子在 Wi-Fi 发射瞬间掉压复位（换后置 USB 口 + 粗线后仍复现），与固件逻辑无关 | `main.c` 在 `esp_wifi_start()` 后加 `esp_wifi_set_max_tx_power(32)`（8 dBm）降低峰值电流；修复后 10:36:50 起连续 8 分钟 **0 条 BOD**（最后一条 BOD 停在修复前的 10:35:22），Wi-Fi 一次连上 |
 
 > 另一条坑：`idf.py monitor` 在 ESP32-S3 **原生 USB（USB-Serial-JTAG）** 上会因 DTR/RTS 触发芯片复位 → `ClearCommError (PermissionError 13)` → monitor 重连 → 再复位，形成死循环。本次改用 `evidence/week14/serial_capture.py`（`open()` 前设 `dtr=False/rts=False`，纯只读，不碰控制线）抓串口，稳定无复位。
 
@@ -1400,7 +1400,7 @@ python app.py
 
 | 时间 | 事件 | 证据 |
 |------|------|------|
-| 10:37:04 | Flask 停机，设备 5 次轮询失败后转入本地缓存 | 串口 `Server unreachable (5 consecutive failures), collecting for local cache (queue=1/90)` |
+| 10:37:04 | Flask 处于停机状态，轮询失败即把当拍数据入队本地缓存（首次 `queue=1/90`） | 串口 `Server unreachable (2 consecutive failures), collecting for local cache (queue=0/90)` → `Cached locally (queue=1/90)` |
 | 10:37:04–10:38:33 | 断网窗口 **89 s**，逐秒入队，峰值 `queue=23/90`（未触顶，无环形覆盖丢帧） | 串口 23 行 `Cached locally (queue=n/90)`，n=1…23 |
 | 10:38:33 | 重启 `python app.py`（服务端在线） | `flask.log` 恢复记录请求 |
 | 10:38:36 | 检测到服务端恢复，开始批量补传 | 串口 `RETRANSMIT: sending 23 cached records` |
