@@ -221,6 +221,7 @@ idf.py -p COM4 flash monitor
 |------|------|------|------|
 | 2026-09-30 | 前端按键状态不更新 | `index.html` 多余 `}` 导致 JS 语法错误 | 删除多余 `}` |
 | 2026-09-30 | HTTP 错误信息不明确 | `main.c` 只打印 `esp_err_to_name` 无十六进制码 | 添加 `(0x%x)` 和完整 URL 日志 |
+| 2026-11-02 | 串口日志误导（曾让人误判"多出几次触发"） | `http_upload()` 里复制粘贴了 `ESP_LOGI("Sending trigger to URL: %s", SERVER_TRIGGER_URL)`，实际是**每轮传感器上传**都打印"发送触发" | 改为 `Uploading sensor data to URL: %s`（纯日志，不影响功能；下次烧录生效） |
 
 
 ---

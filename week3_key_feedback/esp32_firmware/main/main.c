@@ -319,7 +319,7 @@ static esp_err_t http_upload(float ax, float ay, float az, const char *time_str,
     esp_http_client_set_header(client, "Content-Type", "application/json");
     esp_http_client_set_post_field(client, payload, strlen(payload));
 
-        ESP_LOGI(TAG, "Sending trigger to URL: %s", SERVER_TRIGGER_URL);
+        ESP_LOGI(TAG, "Uploading sensor data to URL: %s", SERVER_URL);
     esp_err_t err = esp_http_client_perform(client);
     if (err == ESP_OK) {
         int status = esp_http_client_get_status_code(client);
