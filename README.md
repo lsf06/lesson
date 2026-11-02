@@ -236,11 +236,13 @@ idf.py -p COM4 flash monitor
 
 **结论**：`app.py:350-358` 的 `UPDATE trigger_events SET status='CANCELLED', cancelled_at=? WHERE event_id=?` 命中 1 行（`rows_affected=1`），取消**即时落库**；固件侧 CANCEL 优先级高于 TRIGGER（`main.c:621-632`、`694-699`）。第 3 周"按键触发/取消 + 服务端留痕"闭环成立。
 
-> **本轮排除掉的两个干扰项**
-> 1. **11:23 / 13:36 那两轮按键不采信**：服务端 app 日志与 DB 都没有对应的 `/api/trigger`；串口里那几条 `Sending trigger to URL` 是**上传路径的旧文案**——当时烧的 bin（990,448 B，`10:00:02` 构建）比 `main.c`（`10:14:54`）旧，源码 `a110bf3` 已把该行改为 `Uploading sensor data to URL`（`main.c:322`）但未重新烧录，所以上传时也会打印这句话，不能当作按键证据。**真正的按键证据必须同时出现 `HTTP: POST /api/trigger event_id=...`。**
+> **本轮排除掉的干扰项与取证教训**
+> 1. **11:23 / 13:36 那两轮没有可采信的按键证据**：服务端 app 日志与 DB 都没有对应的 `/api/trigger`；串口里那几条 `Sending trigger to URL` 其实是**上传路径的旧文案**——当时烧的 bin（990,448 B，`10:00:02` 构建）比 `main.c`（`10:14:54`）旧，源码 `a110bf3` 已把该行改为 `Uploading sensor data to URL`（`main.c:322`）但未重新烧录，所以上传时也会打印这句话。加上当轮串口存在"双 reader 抢端口"导致的丢行（见下条），`BUTTON:` 行是否被丢掉无法排除——所以那两轮一律不采信，改用本节这轮干净窗口作结论。**真正的按键证据必须同时出现 `HTTP: POST /api/trigger event_id=...`。**
 > 2. **页面上的 `POST /api/request_collection` 不是自动重试**：`index.html` 中只有 `#req-btn` 的 `onclick="requestCollection()"`（`index.html:92/211`）一处调用，没有任何定时器/自动循环，它由点击"🔬 采集一次最新数据"产生，物理按键不会触发。
 >
-> **串口控制台的局限**：ESP32-S3 的 USB-Serial-JTAG 输出会整段卡顿，本轮抓到过 172 s 数据空洞与粘行（`serial_capture2.py` 的 `@GAP` 标记即为此设计），`BUTTON:` 行可能丢。**判定一律以服务端 DB / 日志为准，串口只作旁证。**
+> **串口空洞的根因是"两个 reader 抢同一个 COM4"，不是设备卡顿**：`serial_key_cancel3.log` 第 2 行与第 285 行各有一条 `=== capture2 start`（13:45:17 / 13:50:04），说明当时**跑着两个 `serial_capture2.py` 实例、都打开了 COM4**。此后日志里累计 **145 次** `=== port COM4 opened ===`、**144 次** `ClearCommError ... PermissionError(13, '设备不识别此命令')`、**924 次** `could not open port 'COM4': FileNotFoundError`——两个句柄互抢，13:49:39 → 13:51:46 直接出现两分钟空洞（`@GAP` 标记）。而**本轮的证据窗口（14:01:02–14:04:48）内 `@GAP` 为 0、4 条 `BUTTON:` 齐全**，所以上面的结论不受影响。
+>
+> **抓串口前必须确认只有一个 reader**：`Get-CimInstance Win32_Process -Filter "Name='python.exe'" | Where-Object { $_.CommandLine -like '*serial_capture*' }` 只应返回 1 行。串口仍只作旁证，判定一律以服务端 DB / 日志为准。
 
 ### 4. API 接口
 
