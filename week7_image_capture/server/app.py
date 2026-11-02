@@ -854,14 +854,42 @@ def api_capture_image():
             f.write(raw)
 
         # Update DB
+        rid = (request.args.get('request_id') or request.headers.get('X-Request-Id') or '').strip()
+        dev = (request.args.get('device_id') or 'group01_esp32s3eye').strip()
+        now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         try:
             conn = get_db()
             conn.execute('INSERT INTO captured_images (filename, source, created_at) VALUES (?,?,?)',
                          (fname, 'esp32_camera', datetime.now().isoformat()))
+            # 第7周红线修复：图片落盘成功即闭环采集请求，避免 _check_timeouts()
+            # （阈值 5s）把已完成的拍照请求误判成 TIMEOUT，导致状态图/统计全错。
+            # 固件当前不带 request_id，故回退到「该设备最新一条未完成的 capture 请求」。
+            if rid:
+                cur = conn.execute(
+                    "UPDATE collection_requests SET status='COMPLETED', completed_at=? "
+                    "WHERE request_id=? AND status IN ('PENDING','RECEIVED')",
+                    (now_str, rid)
+                )
+            else:
+                cur = conn.execute(
+                    "UPDATE collection_requests SET status='COMPLETED', completed_at=? "
+                    "WHERE request_id = ("
+                    "    SELECT request_id FROM collection_requests "
+                    "    WHERE device_id=? AND action='capture' AND status IN ('PENDING','RECEIVED') "
+                    "    ORDER BY created_at DESC, rowid DESC LIMIT 1)",
+                    (now_str, dev)
+                )
             conn.commit()
+            matched = cur.rowcount
             conn.close()
-        except Exception:
-            pass
+            if matched:
+                log.info('Capture: collection_requests COMPLETED (request_id=%s, matched=%d, completed_at=%s)',
+                         rid or 'auto:latest_pending_capture', matched, now_str)
+            else:
+                log.warning('Capture: no PENDING/RECEIVED capture request to complete '
+                            '(request_id=%s, device=%s)', rid or 'auto', dev)
+        except Exception as e:
+            log.error('Capture: failed to record image/request in DB: %s', e)
 
         log.info('Image saved from ESP32: %s (%d bytes)', fname, len(raw))
         return jsonify({'success': True, 'message': 'image saved', 'filename': fname})
