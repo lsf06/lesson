@@ -196,11 +196,51 @@ idf.py -p COM4 flash monitor
 | `20261102_100240_8E4C` | `REMOTE_ACKED` | 10:02:40 | 10:02:40 | `NULL` | ✅ 正确：取消请求因服务端已停未到达，`cancelled_at` 本就不该有值 |
 | `20261102_100308_9977` | 无记录 | — | — | — | ✅ 正确：断网事件从未到达服务端，表里只存"服务端看到的事实" |
 
-> **取消路径的取证需要服务端在线**：再跑一次 30 秒即可——按 BOOT（白→红→绿）→ 立刻再按（→白）→ `flask.log` 出现 `Cancel: event_id=... rows_affected=1`，DB 该行变为 `CANCELLED` 且 `cancelled_at` 非空（与 2026-09-30 的历史记录一致）。
+> **取消路径的取证需要服务端在线**：§3.1 这轮取消请求因服务端已停未发出，故该行只停在 `REMOTE_ACKED`。该缺口已在 **§3.2（14:01–14:05）** 补齐：`Cancel: event_id=... rows_affected=1`，DB 变为 `CANCELLED` 且 `cancelled_at` 非空。
 
 **两条待观察项（不影响第 3 周验收）**
 - `task_wdt: Task watchdog got triggered` ×2：只发生在 HTTP 连接失败阻塞的那 5 s 内，**未复位**，属告警；
 - `E BOD: Brownout detector was triggered` ×4（日志尾部）：USB 供电瞬时跌落。第 14 周测试更久、Wi-Fi 发射更密集，建议改用**带外部供电的 USB Hub 或主板后置 USB 口**，避免中途复位污染补传数据。
+
+### 3.2 取消落库实机复验（2026-11-02 14:01–14:05，COM4）
+
+§3.1 留下的"取消是否真的落库"缺口已补齐：服务端在线时，按键取消会把同一 `event_id` 从 `REMOTE_ACKED` 更新为 `CANCELLED`，并写入真实的 `cancelled_at`。
+
+**取证方式（与 §3.1 不同，务必沿用）**
+
+- Flask 用 `evidence/week3/start_week3_stack.ps1` 以**独立进程 + `-RedirectStandardOutput/-Error`** 启动。§3.1 那轮用 `python app.py 2>&1 | Tee-Object`，一换终端命令 python 就成了孤儿进程、访问日志直接断流，`/api/trigger` 是否到达无从判断；
+- 串口用 `evidence/week3/serial_capture2.py`（`in_waiting` 批量读 + `@GAP` 空洞标记），比原 `readline()` 版本更抗突发；
+- 四源汇总：`evidence/week3/cancel_evidence_1404.txt`（串口 + 访问日志 + app 日志 + DB）。
+
+**时间线**（"开机相对"取自串口 `I (xxxxx)` 毫秒计数）
+
+| 绝对时间 | 开机相对 | 设备侧（串口 COM4） | 服务端 | LCD |
+|---|---|---|---|---|
+| 14:01:02 | 9527.2 s | `BUTTON: TRIGGER event_id=20261102_140102_366A LCD=TRIGGERED` | `POST /api/trigger` → 200 | 白→**红** |
+| 14:01:02 | 9527.3 s | `TRIGGER response: {"ack":true,"event_id":"20261102_140102_366A"}` | `Trigger ACK: ... status=REMOTE_ACKED` | 红→**绿**（往返 **0.18 s**） |
+| 14:04:46 | 9751.6 s | `BUTTON: CANCEL event_id=20261102_140102_366A LCD=IDLE` | `POST /api/cancel` → 200 | 绿→**白** |
+| 14:04:47 | 9752.8 s | `CANCEL HTTP 200 OK` | `Cancel: event_id=20261102_140102_366A rows_affected=1` | 白 |
+| 14:04:47 | 9752.2 s | `BUTTON: TRIGGER event_id=20261102_140447_F991 LCD=TRIGGERED` | `POST /api/trigger` → 200 | 白→**红** |
+| 14:04:48 | 9753.2 s | `TRIGGER response: {"ack":true,"event_id":"20261102_140447_F991"}` → `HTTP: REMOTE_ACKED` | `Trigger ACK: ... status=REMOTE_ACKED` | 红→**绿** |
+| 14:04:48 | 9753.5 s | `BUTTON: CANCEL event_id=20261102_140447_F991 LCD=IDLE` | `POST /api/cancel` → 200 | 绿→**白** |
+| 14:04:48 | 9753.7 s | `CANCEL HTTP 200 OK` | `Cancel: event_id=20261102_140447_F991 rows_affected=1` | 白 |
+
+**数据库核对**（`week3_key_feedback/server/sensor_data.db` → `trigger_events`）
+
+| event_id | status | created_at | acknowledged_at | cancelled_at | 触发→取消 |
+|---|---|---|---|---|---|
+| `20261102_140102_366A` | `CANCELLED` | 14:01:02 | 14:01:02 | **14:04:47** | 225 s（诊断停顿后补按） |
+| `20261102_140447_F991` | `CANCELLED` | 14:04:48 | 14:04:48 | **14:04:48** | **< 1 s** |
+
+全表 206 行，其中 `status='CANCELLED' AND cancelled_at IS NOT NULL` 共 **196 行**——不存在"状态 `CANCELLED` 却没写时间戳"的行。
+
+**结论**：`app.py:350-358` 的 `UPDATE trigger_events SET status='CANCELLED', cancelled_at=? WHERE event_id=?` 命中 1 行（`rows_affected=1`），取消**即时落库**；固件侧 CANCEL 优先级高于 TRIGGER（`main.c:621-632`、`694-699`）。第 3 周"按键触发/取消 + 服务端留痕"闭环成立。
+
+> **本轮排除掉的两个干扰项**
+> 1. **11:23 / 13:36 那两轮按键不采信**：服务端 app 日志与 DB 都没有对应的 `/api/trigger`；串口里那几条 `Sending trigger to URL` 是**上传路径的旧文案**——当时烧的 bin（990,448 B，`10:00:02` 构建）比 `main.c`（`10:14:54`）旧，源码 `a110bf3` 已把该行改为 `Uploading sensor data to URL`（`main.c:322`）但未重新烧录，所以上传时也会打印这句话，不能当作按键证据。**真正的按键证据必须同时出现 `HTTP: POST /api/trigger event_id=...`。**
+> 2. **页面上的 `POST /api/request_collection` 不是自动重试**：`index.html` 中只有 `#req-btn` 的 `onclick="requestCollection()"`（`index.html:92/211`）一处调用，没有任何定时器/自动循环，它由点击"🔬 采集一次最新数据"产生，物理按键不会触发。
+>
+> **串口控制台的局限**：ESP32-S3 的 USB-Serial-JTAG 输出会整段卡顿，本轮抓到过 172 s 数据空洞与粘行（`serial_capture2.py` 的 `@GAP` 标记即为此设计），`BUTTON:` 行可能丢。**判定一律以服务端 DB / 日志为准，串口只作旁证。**
 
 ### 4. API 接口
 
