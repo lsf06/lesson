@@ -1,6 +1,6 @@
 # 第18周：系统成果归档与真实复盘报告
 
-> 归档日期：2026-10-23 ｜ 最终版本：v1.0-final（代码目录 `week13_14_15_edge_inference`；**2026-10-29 已补打本地 tag `v1.0-final`**，未 push 远端）
+> 归档日期：2026-10-23 ｜ 最终版本：v1.0-final（代码目录 `week13_14_15_edge_inference`；**2026-10-29 补打本地 tag，2026-11-02 已 push 远端**）
 > 归档原则：**以代码、日志、数据库原始记录为准。凡拿不出证据的能力，一律不计入"已完成"。**
 
 ---
@@ -98,10 +98,24 @@
 | :--- | :--- |
 | 真实模型推理零次执行 | 大纲允许"先调用教师真实基线"，即使没有自建模型也应接入基线；实际连基线都未接 |
 | 端侧无轻量模型 | 第13周允许使用教师保底目标端模型，未申请/未接入，最终以阈值规则替代 |
-| 补传 UI 标签未验证 | 已用 `week13_14_15_edge_inference/tools/backfill_fixture.py` 做**状态注入**验证（`recovered` 徽章链路走通，见该脚本输出），但**仍缺一次真实设备断网复测**；注入结果不能替代实物证据 |
+| 补传 UI 标签未验证 | 已用 `week13_14_15_edge_inference/tools/backfill_fixture.py` 做**状态注入**验证（`recovered` 徽章链路走通，见该脚本输出）；**2026-11-02 已用实物拔服务端复测补齐**（23 条缓存 / 19 条 `recovered`），见第 5.3 节补记 |
 | 无截图、无串口日志归档 | 属于留证工作，与外部条件无关 |
-| 无版本 tag / 版本说明 | 已于 2026-10-29 补打本地 tag `v1.0-final`（不 push），此项可销 |
+| 无版本 tag / 版本说明 | 2026-10-29 补打本地 tag `v1.0-final`，**2026-11-02 已 push 远端**（`git ls-remote --tags origin` 可见），此项销账；仍无 VERSION 文件 |
 | 第9周冷却时间、第6周时延测量 | 纯代码与测量工作，不受硬件限制 |
+
+---
+
+### 5.3 补记（2026-11-02 实机批次）：三条「原未验证」已闭环
+
+> 本节写在第 5.1/5.2 之后，用于**更新**上文口径——凡是本节列出的条目，以上文的「未验证」表述为准入历史记录，对外一律用下表。
+
+| 原条目 | 2026-11-02 后的状态 | 证据（可核验） |
+| :--- | :--- | :--- |
+| 第14周「带 `recovered` 的真实断网复测」（原文：只有状态注入） | **已补齐实物**：停服务端 **89 s**，`queue` 峰值 23/90，`RETRANSMIT: sending 23 cached records` → `23/23 sent, 0 remain in queue`；DB 19 条 `recovered`（delay 31–92 s）+ 4 条 `live`（17–27 s），0 丢失 | 根 `README.md` §5.1；`evidence/week14/serial_week14.log`、`flask_week14.log`、`db_check.txt` |
+| 第7周真实拍照（原文：板子不在手边，只能用 `recent_cache`） | **已补齐实物**：09:32:07 网页发起 → 板端 9,434 B JPEG → `CAPTURE: HTTP 200`（210 ms）→ `capture_20261102_093209.jpg`，SOI/EOI 完整、SHA256 `FA2DA623…B8790885` | 根 `README.md` §7.6；`evidence/week07/REAL_DEVICE_20261102.md` |
+| 第3周取消落库（原文：该行只停在 `REMOTE_ACKED`） | **已补齐实物**：`Cancel: event_id=... rows_affected=1`，DB `CANCELLED` + `cancelled_at=14:04:47 / 14:04:48`，含「触发→取消 < 1 s」 | 根 `README.md` §3.2；`evidence/week3/cancel_evidence_1404.txt` |
+
+> 仍未闭环的仍是那几条外部条件：真实视觉/语言模型、端侧模型、GNSS、板载麦克风、≥8 人可用性样本。**18 周逐周分级见 `Audit_Fix_Report.md` §12.2。**
 
 ---
 
